@@ -33,7 +33,7 @@ swiftc \
 
 cp "$BUILD_DIR/HuNaoAutoDL" "$STAGE_APP/Contents/MacOS/HuNaoAutoDL"
 cp "$ROOT/Info.plist" "$STAGE_APP/Contents/Info.plist"
-cp "$ROOT/Resources/AppIcon.icns" "$STAGE_APP/Contents/Resources/AppIcon.icns"
+cp "$ROOT/Resources/AppIconV2.icns" "$STAGE_APP/Contents/Resources/AppIconV2.icns"
 cp "$ROOT/Resources/BrandIcon.png" "$STAGE_APP/Contents/Resources/BrandIcon.png"
 printf 'APPL????' > "$STAGE_APP/Contents/PkgInfo"
 

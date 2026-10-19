@@ -110,6 +110,46 @@ struct AutoDLAPI {
         )
     }
 
+    func fetchBills(from start: Date, to end: Date) async throws -> [BillRecord] {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = AppTime.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateFrom = formatter.string(from: start)
+        let dateTo = formatter.string(from: end)
+
+        var records: [BillRecord] = []
+        var seen = Set<String>()
+        var page = 1
+        // 每小时结算一条流水，30 天最多约 720 条，分页取完。
+        while page <= 6 {
+            let body: [String: Any] = [
+                "order_uuid": "",
+                "sub_name": "",
+                "date_from": dateFrom,
+                "date_to": dateTo,
+                "page_index": page,
+                "page_size": 500,
+                "bill_type": ""
+            ]
+            let json = try await post(path: "/bill/list", body: body)
+            guard let data = json["data"] as? [String: Any],
+                  let list = data["list"] as? [[String: Any]]
+            else { throw AutoDLError.invalidResponse }
+
+            for item in list {
+                if let record = BillRecord.parse(item), seen.insert(record.id).inserted {
+                    records.append(record)
+                }
+            }
+
+            let total = jsonInt(data["result_total"]) ?? records.count
+            if list.isEmpty || records.count >= total { break }
+            page += 1
+        }
+        return records
+    }
+
     private func get(path: String) async throws -> [String: Any] {
         try await request(method: "GET", path: path, body: nil)
     }

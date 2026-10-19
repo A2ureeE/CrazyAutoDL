@@ -7,6 +7,7 @@ final class NotificationService: NSObject, ObservableObject {
     static let shared = NotificationService()
 
     @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
+    @Published private(set) var alertsEnabled = true
 
     private let center = UNUserNotificationCenter.current()
     private var isActivated = false
@@ -15,12 +16,25 @@ final class NotificationService: NSObject, ObservableObject {
         guard !isActivated else { return }
         isActivated = true
         center.delegate = self
-        Task { await refreshAuthorizationStatus() }
+        Task {
+            await refreshAuthorizationStatus()
+            let settings = await center.notificationSettings()
+            NSLog(
+                "HuNaoAutoDL notification settings: auth=%ld alert=%ld center=%ld sound=%ld badge=%ld style=%ld",
+                settings.authorizationStatus.rawValue,
+                settings.alertSetting.rawValue,
+                settings.notificationCenterSetting.rawValue,
+                settings.soundSetting.rawValue,
+                settings.badgeSetting.rawValue,
+                settings.alertStyle.rawValue
+            )
+        }
     }
 
     func refreshAuthorizationStatus() async {
         let settings = await center.notificationSettings()
         authorizationStatus = settings.authorizationStatus
+        alertsEnabled = settings.alertSetting == .enabled
     }
 
     @discardableResult
@@ -35,53 +49,67 @@ final class NotificationService: NSObject, ObservableObject {
         }
     }
 
-    func send(title: String, body: String, identifier: String = UUID().uuidString) async {
+    @discardableResult
+    func send(
+        title: String,
+        body: String,
+        identifier: String = UUID().uuidString,
+        threadIdentifier: String = "hunao.autodl.monitor",
+        trigger: UNNotificationTrigger? = nil
+    ) async -> Bool {
         if authorizationStatus != .authorized && authorizationStatus != .provisional {
             await refreshAuthorizationStatus()
         }
         guard authorizationStatus == .authorized || authorizationStatus == .provisional else {
-            return
+            NSLog("HuNaoAutoDL notification skipped: authorization=%ld", authorizationStatus.rawValue)
+            return false
         }
-        await deliver(title: title, body: body, identifier: identifier)
-    }
-
-    func sendTestNotification() async {
-        await send(
-            title: "胡闹AutoDL 通知已就绪",
-            body: "发现空闲显卡、自动开机成功时，我都会在这里提醒你。",
-            identifier: "hunao.test.\(UUID().uuidString)"
+        return await deliver(
+            title: title,
+            body: body,
+            identifier: identifier,
+            threadIdentifier: threadIdentifier,
+            trigger: trigger
         )
     }
 
-    private func deliver(title: String, body: String, identifier: String) async {
+    @discardableResult
+    func sendTestNotification() async -> Bool {
+        await send(
+            title: "胡闹AutoDL 通知已就绪",
+            body: "发现空闲显卡、自动开机成功时，我都会在这里提醒你。",
+            identifier: "hunao.test.\(UUID().uuidString)",
+            threadIdentifier: "",
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+    }
+
+    private func deliver(
+        title: String,
+        body: String,
+        identifier: String,
+        threadIdentifier: String,
+        trigger: UNNotificationTrigger?
+    ) async -> Bool {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
-        content.threadIdentifier = "hunao.autodl.monitor"
-
-        if let iconURL = Bundle.main.url(forResource: "BrandIcon", withExtension: "png") {
-            let copyURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("hunao-notification-\(UUID().uuidString).png")
-            if (try? FileManager.default.copyItem(at: iconURL, to: copyURL)) != nil,
-               let attachment = try? UNNotificationAttachment(
-                   identifier: "hunao.brand",
-                   url: copyURL,
-                   options: nil
-               ) {
-                content.attachments = [attachment]
-            }
+        if !threadIdentifier.isEmpty {
+            content.threadIdentifier = threadIdentifier
         }
 
         let request = UNNotificationRequest(
             identifier: identifier,
             content: content,
-            trigger: nil
+            trigger: trigger
         )
         do {
             try await center.add(request)
+            return true
         } catch {
             NSLog("HuNaoAutoDL notification error: %@", String(describing: error))
+            return false
         }
     }
 
@@ -104,6 +132,7 @@ extension NotificationService: UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        NSLog("HuNaoAutoDL willPresent: %@", notification.request.identifier)
         completionHandler([.banner, .sound, .list])
     }
 }

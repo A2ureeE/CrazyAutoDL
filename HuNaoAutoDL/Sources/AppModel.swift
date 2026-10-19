@@ -6,6 +6,7 @@ import UserNotifications
 enum SidebarSection: String, CaseIterable, Identifiable {
     case dashboard
     case instances
+    case billing
     case settings
 
     var id: String { rawValue }
@@ -14,6 +15,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: return "监控台"
         case .instances: return "我的实例"
+        case .billing: return "账单"
         case .settings: return "设置"
         }
     }
@@ -22,6 +24,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: return "dot.radiowaves.left.and.right"
         case .instances: return "square.stack.3d.up.fill"
+        case .billing: return "chart.bar.xaxis"
         case .settings: return "slider.horizontal.3"
         }
     }
@@ -36,6 +39,9 @@ final class AppModel: ObservableObject {
     @Published private(set) var stock: GPUStock?
     @Published private(set) var balance: AccountBalance?
     @Published private(set) var balanceError: String?
+    @Published private(set) var billing: BillingSnapshot?
+    @Published private(set) var billingError: String?
+    @Published private(set) var isBillingLoading = false
     @Published private(set) var isRefreshing = false
     @Published private(set) var lastUpdated: Date?
     @Published private(set) var lastError: String?
@@ -260,6 +266,9 @@ final class AppModel: ObservableObject {
         activity = []
         balance = nil
         balanceError = nil
+        billing = nil
+        billingError = nil
+        isBillingLoading = false
         gpuWasAvailable = false
         didNotifyForAvailability = false
         didNotifyForLowBalance = false
@@ -279,6 +288,9 @@ final class AppModel: ObservableObject {
         stock = nil
         balance = nil
         balanceError = nil
+        billing = nil
+        billingError = nil
+        isBillingLoading = false
         didNotifyForLowBalance = false
         lastUpdated = nil
         isRefreshing = false
@@ -367,6 +379,40 @@ final class AppModel: ObservableObject {
             if userInitiated {
                 presentToast(kind: .error, title: "同步失败", message: error.localizedDescription)
             }
+        }
+    }
+
+    // MARK: - Billing
+
+    func refreshBilling(force: Bool = false) {
+        Task { await loadBilling(force: force) }
+    }
+
+    private func loadBilling(force: Bool) async {
+        guard phase == .signedIn, let token, !isBillingLoading else { return }
+        if !force, let billing, Date().timeIntervalSince(billing.fetchedAt) < 120 { return }
+
+        isBillingLoading = true
+        defer { isBillingLoading = false }
+
+        let calendar = AppTime.calendar
+        let end = Date()
+        let start = calendar.date(
+            byAdding: .day,
+            value: -35,
+            to: calendar.startOfDay(for: end)
+        ) ?? end
+
+        do {
+            let records = try await AutoDLAPI(token: token).fetchBills(from: start, to: end)
+            guard self.token == token, phase == .signedIn else { return }
+            billing = BillingSnapshot(records: records, fetchedAt: Date())
+            billingError = nil
+        } catch let error as AutoDLError where error.isAuthFailure {
+            expireSession(reason: error.localizedDescription)
+        } catch {
+            guard self.token == token, phase == .signedIn else { return }
+            billingError = error.localizedDescription
         }
     }
 
@@ -657,8 +703,26 @@ final class AppModel: ObservableObject {
             if notifications.authorizationStatus == .notDetermined {
                 _ = await notifications.requestAuthorization()
             }
-            await notifications.sendTestNotification()
-            presentToast(kind: .info, title: "测试通知已发送", message: "如果没有看到，请检查系统通知权限")
+            let delivered = await notifications.sendTestNotification()
+            if !delivered {
+                presentToast(
+                    kind: .warning,
+                    title: "通知发送失败",
+                    message: "请在系统设置中允许胡闹AutoDL发送通知"
+                )
+            } else if !notifications.alertsEnabled {
+                presentToast(
+                    kind: .warning,
+                    title: "通知已送达",
+                    message: "横幅提醒已关闭，请在系统设置中把通知样式改为「横幅」"
+                )
+            } else {
+                presentToast(
+                    kind: .info,
+                    title: "测试通知已发送",
+                    message: "如果没有看到横幅，请检查系统通知设置"
+                )
+            }
         }
     }
 

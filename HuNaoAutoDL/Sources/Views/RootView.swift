@@ -62,6 +62,8 @@ struct RootView: View {
                     DashboardView()
                 case .instances:
                     InstancesView()
+                case .billing:
+                    BillingView()
                 case .settings:
                     SettingsView()
                 }

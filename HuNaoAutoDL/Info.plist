@@ -9,7 +9,7 @@
 	<key>CFBundleExecutable</key>
 	<string>HuNaoAutoDL</string>
 	<key>CFBundleIconFile</key>
-	<string>AppIcon</string>
+	<string>AppIconV2</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.hunao.autodl</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -19,9 +19,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.6</string>
+	<string>1.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>7</string>
+	<string>11</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>

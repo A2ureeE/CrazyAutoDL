@@ -50,6 +50,7 @@ struct AutoDLInstance: Identifiable, Equatable {
     let diskExpandAvailable: Int64?
     let memoryTotal: Int64?
     let memoryUsed: Int64?
+    let releaseAt: Date?
 
     var state: InstanceState {
         switch rawStatus.lowercased() {
@@ -151,6 +152,29 @@ struct AutoDLInstance: Identifiable, Equatable {
         return min(max(Double(used) / Double(total), 0), 1)
     }
 
+    var releaseLabel: String {
+        guard let releaseAt else { return "待同步" }
+        return AppFormat.releaseDate.string(from: releaseAt)
+    }
+
+    var releaseCountdownLabel: String? {
+        guard let releaseAt else { return nil }
+        let calendar = AppTime.calendar
+        let today = calendar.startOfDay(for: Date())
+        let target = calendar.startOfDay(for: releaseAt)
+        let days = calendar.dateComponents([.day], from: today, to: target).day ?? 0
+        if days < 0 { return "已到期" }
+        if days == 0 { return "今天" }
+        return "\(days) 天后"
+    }
+
+    var releaseDetailLabel: String {
+        guard let releaseAt, let countdown = releaseCountdownLabel else {
+            return "AutoDL 暂未返回释放时间"
+        }
+        return "AutoDL 预计释放时间 \(AppFormat.releaseDate.string(from: releaseAt)) · \(countdown)"
+    }
+
     static func parse(_ raw: [String: Any]) -> AutoDLInstance? {
         guard let uuid = jsonString(raw["uuid"])
             ?? jsonString(raw["instance_uuid"])
@@ -197,6 +221,12 @@ struct AutoDLInstance: Identifiable, Equatable {
             ?? jsonInt64(raw["mem_limit_in_byte"])
         let memoryUsed = jsonInt64(usage?["mem_usage"])
             ?? jsonInt64(raw["mem_usage"])
+        // rent_deadline 是 AutoDL 控制台展示的预计释放时间；expired_at 作为套餐到期兜底。
+        let releaseDates = [
+            jsonDate(raw["rent_deadline"]),
+            jsonDate(raw["expired_at"])
+        ].compactMap { $0 }
+        let releaseAt = releaseDates.min()
 
         return AutoDLInstance(
             id: uuid,
@@ -219,7 +249,8 @@ struct AutoDLInstance: Identifiable, Equatable {
             dataDiskUsed: dataUsed,
             diskExpandAvailable: jsonInt64(raw["disk_expand_available"]),
             memoryTotal: memoryTotal,
-            memoryUsed: memoryUsed
+            memoryUsed: memoryUsed,
+            releaseAt: releaseAt
         )
     }
 
@@ -290,6 +321,250 @@ struct AccountBalance: Equatable {
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
         return "¥" + (formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value))
+    }
+}
+
+enum BillType: String, Equatable {
+    case charge
+    case refund
+    case recharge
+    case withdraw
+
+    var symbol: String {
+        switch self {
+        case .charge: return "bolt.fill"
+        case .refund: return "arrow.uturn.backward"
+        case .recharge: return "plus.circle.fill"
+        case .withdraw: return "arrow.up.right.circle.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .charge: return AppTheme.aqua
+        case .refund: return AppTheme.mint
+        case .recharge: return AppTheme.mint
+        case .withdraw: return AppTheme.amber
+        }
+    }
+
+    var isOutflow: Bool {
+        self == .charge || self == .withdraw
+    }
+}
+
+struct BillRecord: Identifiable, Equatable {
+    let id: String
+    let createdAt: Date
+    let type: String
+    let amount: Double
+    let payByBalance: Double
+    let payByVoucher: Double
+    let balanceAfter: Double?
+    let gpuType: String?
+    let regionName: String?
+    let machineID: String?
+    let chargeDuration: Int?
+    let chargeFrom: Date?
+    let originPrice: Double?
+    let discountAmount: Double
+
+    var billType: BillType {
+        BillType(rawValue: type.lowercased()) ?? .charge
+    }
+
+    var effectiveDate: Date {
+        chargeFrom ?? createdAt
+    }
+
+    var signedAmountLabel: String {
+        "\(billType.isOutflow ? "-" : "+")\(AccountBalance.currency(amount))"
+    }
+
+    var title: String {
+        switch billType {
+        case .charge:
+            if let gpuType, !gpuType.isEmpty {
+                if let regionName, !regionName.isEmpty {
+                    return "\(gpuType) · \(regionName)"
+                }
+                return gpuType
+            }
+            return "GPU 消费"
+        case .refund:
+            return "账单退款"
+        case .recharge:
+            return "账户充值"
+        case .withdraw:
+            return "账户提现"
+        }
+    }
+
+    var subtitle: String {
+        let base = AppFormat.billDayTime.string(from: effectiveDate)
+        if let durationLabel {
+            return "\(base) · \(durationLabel)"
+        }
+        return base
+    }
+
+    var durationLabel: String? {
+        guard let chargeDuration, chargeDuration > 0 else { return nil }
+        if chargeDuration >= 3600 {
+            let hours = chargeDuration / 3600
+            let minutes = (chargeDuration % 3600) / 60
+            return minutes == 0 ? "\(hours) 小时" : "\(hours) 小时 \(minutes) 分"
+        }
+        if chargeDuration >= 60 { return "\(chargeDuration / 60) 分钟" }
+        return "\(chargeDuration) 秒"
+    }
+
+    var detailHelp: String {
+        var parts: [String] = []
+        if payByBalance > 0 {
+            parts.append("余额支付 \(AccountBalance.currency(payByBalance))")
+        }
+        if payByVoucher > 0 {
+            parts.append("代金券 \(AccountBalance.currency(payByVoucher))")
+        }
+        if let originPrice, discountAmount > 0 {
+            parts.append("原价 \(AccountBalance.currency(originPrice)) · 优惠 \(AccountBalance.currency(discountAmount))")
+        }
+        if let balanceAfter {
+            parts.append("支付后余额 \(AccountBalance.currency(balanceAfter))")
+        }
+        if let machineID, !machineID.isEmpty {
+            parts.append("主机 \(machineID)")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    static func parse(_ raw: [String: Any]) -> BillRecord? {
+        guard let id = jsonString(raw["uuid"]) ?? jsonInt(raw["id"]).map(String.init) else {
+            return nil
+        }
+        let details = raw["details"] as? [String: Any]
+        let discount = raw["discount_detail"] as? [String: Any]
+
+        return BillRecord(
+            id: id,
+            createdAt: jsonDate(raw["created_at"]) ?? jsonDate(raw["confirm_at"]) ?? Date(),
+            type: jsonString(raw["bill_type"]) ?? "charge",
+            amount: max(0, (jsonDouble(raw["asset"]) ?? 0) / 1000),
+            payByBalance: (jsonDouble(raw["pay_by_balance"]) ?? 0) / 1000,
+            payByVoucher: (jsonDouble(raw["pay_by_voucher"]) ?? 0) / 1000,
+            balanceAfter: jsonDouble(raw["balance"]).map { $0 / 1000 },
+            gpuType: jsonString(details?["gpu_type"]),
+            regionName: jsonString(details?["region_name"]) ?? jsonString(details?["region_sign"]),
+            machineID: jsonString(details?["machine_id"]),
+            chargeDuration: jsonInt(details?["charge_duration"]),
+            chargeFrom: jsonDate(details?["charge_from"]),
+            originPrice: jsonDouble(discount?["origin_price"]).map { $0 / 1000 },
+            discountAmount: (jsonDouble(discount?["discount_sum"]) ?? 0) / 1000
+        )
+    }
+}
+
+struct DailySpend: Identifiable, Equatable {
+    let date: Date
+    let amount: Double
+
+    var id: Date { date }
+}
+
+struct ConsumptionSlice: Identifiable, Equatable {
+    let id: String
+    let label: String
+    let amount: Double
+}
+
+struct BillingSnapshot: Equatable {
+    let records: [BillRecord]
+    let fetchedAt: Date
+
+    var chargeRecords: [BillRecord] {
+        records.filter { $0.billType == .charge }
+    }
+
+    func netSpend(on day: Date) -> Double {
+        let calendar = AppTime.calendar
+        let net = records.reduce(0.0) { partial, record in
+            guard calendar.isDate(record.effectiveDate, inSameDayAs: day) else { return partial }
+            switch record.billType {
+            case .charge: return partial + record.amount
+            case .refund: return partial - record.amount
+            default: return partial
+            }
+        }
+        return max(0, net)
+    }
+
+    func netSpend(since start: Date) -> Double {
+        let net = records.reduce(0.0) { partial, record in
+            guard record.effectiveDate >= start else { return partial }
+            switch record.billType {
+            case .charge: return partial + record.amount
+            case .refund: return partial - record.amount
+            default: return partial
+            }
+        }
+        return max(0, net)
+    }
+
+    func dailySeries(days: Int) -> [DailySpend] {
+        let calendar = AppTime.calendar
+        let end = calendar.startOfDay(for: Date())
+        return (0..<days).reversed().compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: end) else { return nil }
+            return DailySpend(date: day, amount: netSpend(on: day))
+        }
+    }
+
+    func totalSpend(days: Int) -> Double {
+        dailySeries(days: days).reduce(0) { $0 + $1.amount }
+    }
+
+    var todaySpend: Double {
+        totalSpend(days: 1)
+    }
+
+    var last7Spend: Double {
+        totalSpend(days: 7)
+    }
+
+    var monthSpend: Double {
+        let calendar = AppTime.calendar
+        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: Date())) ?? Date()
+        return netSpend(since: start)
+    }
+
+    var averageDailySpend: Double {
+        last7Spend / 7
+    }
+
+    func estimatedDaysRemaining(balance: Double?) -> Int? {
+        guard let balance, balance > 0, averageDailySpend > 0.01 else { return nil }
+        return max(0, Int(balance / averageDailySpend))
+    }
+
+    func gpuConsumption(days: Int = 30) -> [ConsumptionSlice] {
+        let calendar = AppTime.calendar
+        let today = calendar.startOfDay(for: Date())
+        guard let start = calendar.date(byAdding: .day, value: -(days - 1), to: today) else {
+            return []
+        }
+        var totals: [String: Double] = [:]
+        for record in chargeRecords where record.effectiveDate >= start {
+            let key = record.gpuType?.isEmpty == false ? record.gpuType! : "其他消费"
+            totals[key, default: 0] += record.amount
+        }
+        return totals
+            .map { ConsumptionSlice(id: $0.key, label: $0.key, amount: $0.value) }
+            .sorted { $0.amount > $1.amount }
+    }
+
+    var recentRecords: [BillRecord] {
+        Array(records.sorted { $0.createdAt > $1.createdAt }.prefix(12))
     }
 }
 

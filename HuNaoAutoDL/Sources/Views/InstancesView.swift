@@ -281,6 +281,8 @@ private struct InstanceRow: View {
                 HStack(spacing: 12) {
                     MetaItem(symbol: "memorychip", text: "内存剩余 \(instance.memoryFreeLabel)")
                         .help("\(instance.memoryDetailLabel) · 当前实例剩余可用内存")
+                    MetaItem(symbol: "hourglass", text: "释放时间 \(instance.releaseLabel)")
+                        .help(instance.releaseDetailLabel)
                     MetaItem(symbol: "creditcard", text: instance.chargeLabel)
                     MetaItem(symbol: "number", text: "实例 \(instance.shortID)")
                     if let startedAt = instance.startedAt, instance.state == .running {
@@ -301,6 +303,18 @@ private struct InstanceRow: View {
                 }
                 .buttonStyle(ActionButtonStyle(tint: AppTheme.aqua))
             }
+
+            Button {
+                AppLinks.openInstanceConsole()
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "trash")
+                        .scaledFont(size: 8, weight: .bold)
+                    Text("释放")
+                }
+            }
+            .buttonStyle(ActionButtonStyle(tint: AppTheme.rose))
+            .help("打开 AutoDL 控制台，在网页中手动确认释放「\(instance.name)」")
 
             Button {
                 if instance.state == .running {

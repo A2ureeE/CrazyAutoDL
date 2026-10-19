@@ -5,9 +5,29 @@ enum AppLinks {
     static let author = "A2ureeE"
     static let repositoryURL = URL(string: "https://github.com/A2ureeE/CrazyAutoDL")!
     static let repositoryLabel = "github.com/A2ureeE/CrazyAutoDL"
+    static let instanceConsoleURL = URL(string: "https://www.autodl.com/console/instance/list")!
+    static let billingConsoleURL = URL(string: "https://www.autodl.com/console/bill")!
 
     static func openRepository() {
         NSWorkspace.shared.open(repositoryURL)
+    }
+
+    static func openInstanceConsole() {
+        NSWorkspace.shared.open(instanceConsoleURL)
+    }
+
+    static func openBillingConsole() {
+        NSWorkspace.shared.open(billingConsoleURL)
+    }
+}
+
+enum AppTime {
+    static let timeZone = TimeZone(identifier: "Asia/Shanghai") ?? TimeZone.current
+
+    static var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar
     }
 }
 
@@ -535,6 +555,38 @@ enum AppFormat {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "zh_CN")
         formatter.dateFormat = "yyyy年M月d日 EEEE"
+        return formatter
+    }()
+
+    static let billDayTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.timeZone = AppTime.timeZone
+        formatter.dateFormat = "M月d日 HH:mm"
+        return formatter
+    }()
+
+    static let billDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.timeZone = AppTime.timeZone
+        formatter.dateFormat = "M月d日"
+        return formatter
+    }()
+
+    static let chartDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = AppTime.timeZone
+        formatter.dateFormat = "M/d"
+        return formatter
+    }()
+
+    static let releaseDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = AppTime.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
 
