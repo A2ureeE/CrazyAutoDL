@@ -119,6 +119,7 @@ struct BillingView: View {
 
     private func spendSummary(_ snapshot: BillingSnapshot) -> some View {
         let total = snapshot.totalSpend(days: rangeDays)
+        let dailyAverage = rangeDays > 0 ? total / Double(rangeDays) : 0
         let dayLeft = snapshot.estimatedDaysRemaining(balance: model.balance?.available)
 
         return VStack(alignment: .leading, spacing: 0) {
@@ -135,7 +136,7 @@ struct BillingView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chart.line.uptrend.xyaxis")
                         .scaledFont(size: 9, weight: .semibold)
-                    Text("日均 \(currency(snapshot.averageDailySpend))")
+                    Text("日均 \(currency(dailyAverage))")
                         .scaledFont(size: 9.5, weight: .medium)
                 }
                 .foregroundStyle(AppTheme.textTertiary)

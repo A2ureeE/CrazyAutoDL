@@ -61,6 +61,7 @@ final class AppModel: ObservableObject {
     let notifications = NotificationService.shared
 
     private let defaults = UserDefaults.standard
+    private let isDemo: Bool
     private var token: String?
     private var monitoringTask: Task<Void, Never>?
     private var toastDismissTask: Task<Void, Never>?
@@ -150,6 +151,8 @@ final class AppModel: ObservableObject {
     }
 
     init() {
+        isDemo = ProcessInfo.processInfo.arguments.contains("--demo")
+
         let defaults = UserDefaults.standard
         if defaults.object(forKey: DefaultsKey.autoStart) == nil {
             defaults.set(false, forKey: DefaultsKey.autoStart)
@@ -167,6 +170,11 @@ final class AppModel: ObservableObject {
 
         selectedInstanceID = defaults.string(forKey: DefaultsKey.selectedInstance)
 
+        if isDemo {
+            applyDemoData()
+            return
+        }
+
         if let savedToken = TokenStore.loadToken() {
             token = savedToken
             tokenHint = Self.maskedToken(savedToken)
@@ -174,6 +182,29 @@ final class AppModel: ObservableObject {
             Task { await bootstrapWithSavedToken() }
         } else {
             phase = .loggedOut
+        }
+    }
+
+    private func applyDemoData() {
+        let seed = DemoData.seed()
+        phase = .signedIn
+        signedInAt = Date().addingTimeInterval(-86_400 * 3)
+        instances = seed.instances
+        selectedInstanceID = seed.selectedInstanceID
+        stock = seed.stock
+        balance = seed.balance
+        billing = seed.billing
+        activity = seed.activity
+        lastUpdated = Date()
+        tokenHint = "demo••••••••"
+        autoStartEnabled = true
+        pollInterval = 15
+        fontScale = 1.0
+
+        let arguments = ProcessInfo.processInfo.arguments
+        if let argument = arguments.first(where: { $0.hasPrefix("--section=") }),
+           let section = SidebarSection(rawValue: String(argument.dropFirst("--section=".count))) {
+            selectedSection = section
         }
     }
 

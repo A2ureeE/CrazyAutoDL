@@ -115,7 +115,7 @@ struct InstancesView: View {
             divider
             FleetStat(
                 label: "监控目标",
-                value: model.selectedInstance.map { String($0.name.prefix(8)) } ?? "未选择",
+                value: model.selectedInstance?.name ?? "未选择",
                 symbol: "scope",
                 tint: AppTheme.violet
             )
@@ -284,7 +284,6 @@ private struct InstanceRow: View {
                     MetaItem(symbol: "hourglass", text: "释放时间 \(instance.releaseLabel)")
                         .help(instance.releaseDetailLabel)
                     MetaItem(symbol: "creditcard", text: instance.chargeLabel)
-                    MetaItem(symbol: "number", text: "实例 \(instance.shortID)")
                     if let startedAt = instance.startedAt, instance.state == .running {
                         MetaItem(symbol: "clock", text: "启动于 \(AppFormat.dateTime.string(from: startedAt))")
                     }

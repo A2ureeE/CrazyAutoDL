@@ -590,6 +590,14 @@ enum AppFormat {
         return formatter
     }()
 
+    static let releaseShort: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = AppTime.timeZone
+        formatter.dateFormat = "MM-dd HH:mm"
+        return formatter
+    }()
+
     static func relative(_ date: Date?) -> String {
         guard let date else { return "尚未同步" }
         let seconds = max(0, Int(Date().timeIntervalSince(date)))

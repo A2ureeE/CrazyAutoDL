@@ -154,7 +154,7 @@ struct AutoDLInstance: Identifiable, Equatable {
 
     var releaseLabel: String {
         guard let releaseAt else { return "待同步" }
-        return AppFormat.releaseDate.string(from: releaseAt)
+        return AppFormat.releaseShort.string(from: releaseAt)
     }
 
     var releaseCountdownLabel: String? {
