@@ -53,7 +53,7 @@ struct QuickPanelView: View {
             BrandMark(size: 33)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("胡闹 AutoDL")
+                Text("胡闹AutoDL")
                     .scaledFont(size: 14.5, weight: .bold, design: .rounded)
                     .foregroundStyle(AppTheme.textPrimary)
                 HStack(spacing: 5) {
@@ -182,7 +182,7 @@ struct QuickPanelView: View {
             Image(systemName: "moon.zzz.fill")
                 .scaledFont(size: 10, weight: .semibold)
                 .foregroundStyle(AppTheme.amber.opacity(0.85))
-            Text("当前没有实例在运行。选好监控对象并开启自动开机，胡闹替你守卡。")
+            Text("当前没有实例在运行。选好监控对象并开启自动开机，胡闹AutoDL 替你守卡。")
                 .scaledFont(size: 9.5, weight: .medium)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

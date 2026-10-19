@@ -640,7 +640,7 @@ struct DashboardView: View {
     private func confirmStopAndPowerOff(_ instance: AutoDLInstance) {
         let alert = NSAlert()
         alert.messageText = "关闭 \(instance.name)？"
-        alert.informativeText = "关机后如果自动开机已开启，胡闹会在目标主机出现空闲卡时再次开机。"
+        alert.informativeText = "关机后如果自动开机已开启，胡闹AutoDL 会在目标主机出现空闲卡时再次开机。"
         alert.alertStyle = .warning
         alert.addButton(withTitle: "关机")
         alert.addButton(withTitle: "取消")

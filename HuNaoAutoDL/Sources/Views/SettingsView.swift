@@ -360,7 +360,7 @@ struct SettingsView: View {
                     StatusPill(label: notificationLabel, tint: notificationTint)
                 }
 
-                Text("关闭自动开机时，目标主机一旦出现空闲卡就会提醒；自动开机成功和余额不足时也会通知。请保持胡闹在运行。")
+                Text("关闭自动开机时，目标主机一旦出现空闲卡就会提醒；自动开机成功和余额不足时也会通知。请保持胡闹AutoDL 在运行。")
                     .scaledFont(size: 10)
                     .foregroundStyle(AppTheme.textTertiary)
                     .lineSpacing(3)
@@ -463,7 +463,7 @@ struct SettingsView: View {
     private var aboutCard: some View {
         SettingsCard(
             eyebrow: "About",
-            title: "关于胡闹",
+            title: "关于胡闹AutoDL",
             symbol: "info.circle.fill",
             tint: AppTheme.violet
         ) {
@@ -489,7 +489,7 @@ struct SettingsView: View {
                         HStack(spacing: 7) {
                             Image(systemName: "star.fill")
                                 .scaledFont(size: 9, weight: .bold)
-                            Text("去 GitHub 给胡闹点个 Star")
+                            Text("去 GitHub 给胡闹AutoDL 点个 Star")
                             Spacer(minLength: 0)
                             Image(systemName: "arrow.up.right")
                                 .scaledFont(size: 8, weight: .bold)

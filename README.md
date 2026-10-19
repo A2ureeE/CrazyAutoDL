@@ -12,18 +12,18 @@
   <img src="https://img.shields.io/badge/macOS-15%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 15+">
   <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-6e56cf?style=flat-square" alt="Apple Silicon">
   <img src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6">
-  <img src="https://img.shields.io/badge/version-1.1.0-34c759?style=flat-square" alt="Version 1.1.0">
+  <img src="https://img.shields.io/badge/version-1.1.1-34c759?style=flat-square" alt="Version 1.1.1">
 </p>
 
 <p align="center">
   <a href="https://github.com/A2ureeE/CrazyAutoDL/releases/latest">
-    <img src="https://img.shields.io/badge/下载-macOS%20v1.1.0-34c759?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 版">
+    <img src="https://img.shields.io/badge/下载-macOS%20v1.1.1-34c759?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 版">
   </a>
 </p>
 
 ---
 
-## 胡闹什么
+## 胡闹AutoDL 是什么
 
 AutoDL 的闲置 GPU 就像食堂最后一份糖醋排骨：犹豫几秒，就没了。
 
@@ -149,7 +149,7 @@ open "/Applications/胡闹AutoDL.app"
 
 ### 6. 菜单栏速览
 
-点击菜单栏中的胡闹图标，会弹出一个快捷面板：
+点击菜单栏中的胡闹AutoDL 图标，会弹出一个快捷面板：
 
 - 查看当前监控状态与上次更新时间
 - 快速切换监控目标
@@ -259,7 +259,7 @@ CrazyAutoDL/
 
 ## 作者
 
-由 [A2ureeE](https://github.com/A2ureeE) 用胡闹的方式写出来。
+由 [A2ureeE](https://github.com/A2ureeE) 开发并维护。
 
 如果它帮你抢到过一张显卡，欢迎去仓库点个 Star：
 

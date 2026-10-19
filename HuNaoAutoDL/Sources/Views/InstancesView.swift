@@ -48,7 +48,7 @@ struct InstancesView: View {
                 instanceToStop = nil
             }
         } message: { instance in
-            Text("确定要关闭「\(instance.name)」吗？如果自动开机已开启，胡闹会在检测到空闲显卡后重新开机。")
+            Text("确定要关闭「\(instance.name)」吗？如果自动开机已开启，胡闹AutoDL 会在检测到空闲显卡后重新开机。")
         }
     }
 
@@ -66,7 +66,7 @@ struct InstancesView: View {
                         tint: AppTheme.aqua
                     )
                 }
-                Text("查看所有实例状态，或切换胡闹的监控目标。")
+                Text("查看所有实例状态，或切换胡闹AutoDL 的监控目标。")
                     .scaledFont(size: 11.5)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -151,7 +151,7 @@ struct InstancesView: View {
             Text("账号下还没有实例")
                 .scaledFont(size: 16, weight: .semibold)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text("去 AutoDL 创建一台 GPU 实例，然后回来刷新。胡闹只负责替你盯着它。")
+            Text("去 AutoDL 创建一台 GPU 实例，然后回来刷新。胡闹AutoDL 只负责替你盯着它。")
                 .scaledFont(size: 11.5)
                 .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)

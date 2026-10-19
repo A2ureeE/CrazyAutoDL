@@ -233,7 +233,7 @@ final class MenuBarController: NSObject {
         let menu = NSMenu()
         menu.autoenablesItems = false
 
-        let title = NSMenuItem(title: "胡闹 AutoDL", action: nil, keyEquivalent: "")
+        let title = NSMenuItem(title: "胡闹AutoDL", action: nil, keyEquivalent: "")
         title.isEnabled = false
         menu.addItem(title)
 
@@ -328,7 +328,7 @@ final class MenuBarController: NSObject {
         menu.addItem(console)
 
         let star = NSMenuItem(
-            title: "GitHub · 给胡闹点个 Star",
+            title: "GitHub · 给胡闹AutoDL 点个 Star",
             action: #selector(openRepository),
             keyEquivalent: ""
         )

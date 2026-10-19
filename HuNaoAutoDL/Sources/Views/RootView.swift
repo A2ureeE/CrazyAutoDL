@@ -103,7 +103,7 @@ private struct BootView: View {
             }
 
             VStack(spacing: 5) {
-                Text("胡闹 AutoDL")
+                Text("胡闹AutoDL")
                     .scaledFont(size: 18, weight: .bold, design: .rounded)
                     .foregroundStyle(AppTheme.textPrimary)
                 Text("正在唤醒 GPU 哨兵…")

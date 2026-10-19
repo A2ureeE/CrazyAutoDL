@@ -71,7 +71,7 @@ struct AuthView: View {
                 )
                 .padding(.top, 15)
 
-            Text("登录 AutoDL 后，胡闹会替你盯住实例状态与目标主机的空闲显卡。有卡就提醒，或者直接帮你开机抢下。")
+            Text("登录 AutoDL 后，胡闹AutoDL 会替你盯住实例状态与目标主机的空闲显卡。有卡就提醒，或者直接帮你开机抢下。")
                 .scaledFont(size: 14, weight: .regular)
                 .foregroundStyle(AppTheme.textSecondary)
                 .lineSpacing(5)
@@ -243,7 +243,7 @@ struct AuthView: View {
                 Text("登录态自动捕获中")
                     .scaledFont(size: 11, weight: .semibold)
                     .foregroundStyle(AppTheme.textPrimary)
-                Text("完成登录后无需复制，胡闹会自动连接")
+                Text("完成登录后无需复制，胡闹AutoDL 会自动连接")
                     .scaledFont(size: 9.5)
                     .foregroundStyle(AppTheme.textTertiary)
             }
