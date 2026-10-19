@@ -15,6 +15,12 @@
   <img src="https://img.shields.io/badge/version-1.1.0-34c759?style=flat-square" alt="Version 1.1.0">
 </p>
 
+<p align="center">
+  <a href="https://github.com/A2ureeE/CrazyAutoDL/releases/latest">
+    <img src="https://img.shields.io/badge/下载-macOS%20v1.1.0-34c759?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 版">
+  </a>
+</p>
+
 ---
 
 ## 胡闹什么
@@ -82,6 +88,14 @@ AutoDL 的闲置 GPU 就像食堂最后一份糖醋排骨：犹豫几秒，就�
 > 当前构建脚本只产出 arm64 应用，不提供 Intel 版本。
 
 ## 构建与运行
+
+### 直接下载
+
+如果不想自己编译，可以前往 [Releases](https://github.com/A2ureeE/CrazyAutoDL/releases/latest) 下载最新版本的 DMG 或 ZIP。应用为 arm64 架构，要求 macOS 15 及以上。
+
+由于应用使用 ad-hoc 签名、没有经过 Apple 公证，首次打开时 macOS 可能会拦截。请在 Finder 中右键应用选择「打开」，或前往「系统设置 → 隐私与安全性」点击「仍要打开」。
+
+### 从源码构建
 
 ```bash
 git clone https://github.com/A2ureeE/CrazyAutoDL.git
