@@ -43,6 +43,13 @@ struct AutoDLInstance: Identifiable, Equatable {
     let sshCommand: String?
     let rootPassword: String?
     let jupyterDomain: String?
+    let systemDiskTotal: Int64?
+    let systemDiskUsed: Int64?
+    let dataDiskTotal: Int64?
+    let dataDiskUsed: Int64?
+    let diskExpandAvailable: Int64?
+    let memoryTotal: Int64?
+    let memoryUsed: Int64?
 
     var state: InstanceState {
         switch rawStatus.lowercased() {
@@ -81,6 +88,69 @@ struct AutoDLInstance: Identifiable, Equatable {
         return String(id.suffix(8))
     }
 
+    var systemDiskFree: Int64? {
+        guard let total = systemDiskTotal, let used = systemDiskUsed else { return nil }
+        return max(0, total - used)
+    }
+
+    var dataDiskFree: Int64? {
+        guard let total = dataDiskTotal, let used = dataDiskUsed else { return nil }
+        return max(0, total - used)
+    }
+
+    var storageFreeBytes: Int64? {
+        let parts = [systemDiskFree, dataDiskFree].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.reduce(0, +)
+    }
+
+    var storageTotalBytes: Int64? {
+        let parts = [systemDiskTotal, dataDiskTotal].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.reduce(0, +)
+    }
+
+    var storageFreeLabel: String {
+        guard let storageFreeBytes else { return "待同步" }
+        return AppFormat.storage(storageFreeBytes)
+    }
+
+    var storageDetailLabel: String {
+        var parts: [String] = []
+        if let systemDiskFree {
+            parts.append("系统 \(AppFormat.storage(systemDiskFree))")
+        }
+        if let dataDiskFree {
+            parts.append("数据 \(AppFormat.storage(dataDiskFree))")
+        }
+        return parts.isEmpty ? "存储用量待同步" : parts.joined(separator: " · ")
+    }
+
+    var storageUsedFraction: Double? {
+        guard let total = storageTotalBytes, total > 0,
+              let free = storageFreeBytes else { return nil }
+        return Double(total - free) / Double(total)
+    }
+
+    var memoryFreeBytes: Int64? {
+        guard let total = memoryTotal, let used = memoryUsed else { return nil }
+        return max(0, total - used)
+    }
+
+    var memoryFreeLabel: String {
+        guard let memoryFreeBytes else { return "待同步" }
+        return AppFormat.storage(memoryFreeBytes)
+    }
+
+    var memoryDetailLabel: String {
+        guard let total = memoryTotal, total > 0 else { return "内存用量待同步" }
+        let used = memoryUsed ?? 0
+        return "已用 \(AppFormat.storage(used)) / 共 \(AppFormat.storage(total))"
+    }
+
+    var memoryUsedFraction: Double? {
+        guard let total = memoryTotal, total > 0, let used = memoryUsed else { return nil }
+        return min(max(Double(used) / Double(total), 0), 1)
+    }
+
     static func parse(_ raw: [String: Any]) -> AutoDLInstance? {
         guard let uuid = jsonString(raw["uuid"])
             ?? jsonString(raw["instance_uuid"])
@@ -113,6 +183,21 @@ struct AutoDLInstance: Identifiable, Equatable {
             ?? jsonString(raw["machine_alias"])
             ?? ""
 
+        let usage = raw["usage_info"] as? [String: Any]
+        let expandDataDisk = jsonInt64(raw["expand_data_disk_size"])
+        let systemTotal = jsonInt64(raw["root_fs_total_size"])
+            ?? jsonInt64(usage?["root_fs_total_size"])
+        let systemUsed = jsonInt64(raw["root_fs_used_size"])
+            ?? jsonInt64(usage?["root_fs_used_size"])
+        let dataTotal = jsonInt64(usage?["data_disk_total_size"])
+            ?? expandDataDisk.map { baseDataDiskBytes + $0 }
+        let dataUsed = jsonInt64(usage?["data_disk_used_size"])
+        let memoryTotal = jsonInt64(usage?["mem_limit"])
+            ?? jsonInt64(raw["mem_limit"])
+            ?? jsonInt64(raw["mem_limit_in_byte"])
+        let memoryUsed = jsonInt64(usage?["mem_usage"])
+            ?? jsonInt64(raw["mem_usage"])
+
         return AutoDLInstance(
             id: uuid,
             name: name,
@@ -127,9 +212,18 @@ struct AutoDLInstance: Identifiable, Equatable {
             statusAt: jsonDate(raw["status_at"]) ?? jsonDate(raw["updated_at"]),
             sshCommand: jsonString(raw["ssh_command"]),
             rootPassword: jsonString(raw["root_password"]),
-            jupyterDomain: jsonString(raw["jupyter_domain"])
+            jupyterDomain: jsonString(raw["jupyter_domain"]),
+            systemDiskTotal: systemTotal,
+            systemDiskUsed: systemUsed,
+            dataDiskTotal: dataTotal,
+            dataDiskUsed: dataUsed,
+            diskExpandAvailable: jsonInt64(raw["disk_expand_available"]),
+            memoryTotal: memoryTotal,
+            memoryUsed: memoryUsed
         )
     }
+
+    private static let baseDataDiskBytes: Int64 = 50 * 1_073_741_824
 }
 
 struct GPUStock: Equatable {
@@ -295,6 +389,13 @@ func jsonInt(_ value: Any?) -> Int? {
     if let number = value as? NSNumber { return number.intValue }
     if let string = value as? String { return Int(string) }
     if let double = value as? Double { return Int(double) }
+    return nil
+}
+
+func jsonInt64(_ value: Any?) -> Int64? {
+    if let int = value as? Int64 { return int }
+    if let number = value as? NSNumber { return number.int64Value }
+    if let string = value as? String { return Int64(string) }
     return nil
 }
 

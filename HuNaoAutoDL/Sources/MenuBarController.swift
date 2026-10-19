@@ -28,6 +28,7 @@ final class MenuBarController: NSObject {
     static let shared = MenuBarController()
 
     private var statusItem: NSStatusItem?
+    private var quickPanel: NSPopover?
     private var model: AppModel?
     private var openMainWindow: (() -> Void)?
     private var cancellables = Set<AnyCancellable>()
@@ -67,6 +68,12 @@ final class MenuBarController: NSObject {
             statusItem = item
         }
 
+        if let button = statusItem?.button {
+            button.target = self
+            button.action = #selector(statusItemClicked)
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        }
+
         guard cancellables.isEmpty else {
             refresh()
             return
@@ -102,17 +109,7 @@ final class MenuBarController: NSObject {
         guard let model, let button = statusItem?.button else { return }
         let mode = currentMode
 
-        let color: NSColor
-        switch mode {
-        case .disconnected:
-            color = .secondaryLabelColor
-        case .monitoring:
-            color = Self.dynamicColor(dark: (0.33, 0.81, 1.00), light: (0.02, 0.45, 0.72))
-        case .running:
-            color = Self.dynamicColor(dark: (0.38, 0.98, 0.76), light: (0.00, 0.50, 0.32))
-        case .crazy:
-            color = Self.dynamicColor(dark: (1.00, 0.65, 0.24), light: (0.84, 0.34, 0.02))
-        }
+        let color = Self.color(for: mode)
 
         let configuration = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
             .applying(NSImage.SymbolConfiguration(paletteColors: [color]))
@@ -126,8 +123,110 @@ final class MenuBarController: NSObject {
         if model.phase == .signedIn {
             tooltip += "\n\(model.runningCount)/\(model.instances.count) 台实例运行中 · 余额 \(model.balanceLabel)"
         }
+        tooltip += "\n左键打开快捷面板 · 右键更多菜单"
         button.toolTip = tooltip
-        statusItem?.menu = buildMenu(for: model, mode: mode, color: color)
+        resizeQuickPanelIfNeeded()
+    }
+
+    private static func color(for mode: Mode) -> NSColor {
+        switch mode {
+        case .disconnected:
+            return .secondaryLabelColor
+        case .monitoring:
+            return dynamicColor(dark: (0.33, 0.81, 1.00), light: (0.02, 0.45, 0.72))
+        case .running:
+            return dynamicColor(dark: (0.38, 0.98, 0.76), light: (0.00, 0.50, 0.32))
+        case .crazy:
+            return dynamicColor(dark: (1.00, 0.65, 0.24), light: (0.84, 0.34, 0.02))
+        }
+    }
+
+    // MARK: - Quick Panel
+
+    @objc private func statusItemClicked() {
+        guard let model else { return }
+
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            closeQuickPanel()
+            showContextMenu(for: model)
+        } else {
+            toggleQuickPanel(for: model)
+        }
+    }
+
+    private func toggleQuickPanel(for model: AppModel) {
+        if let quickPanel, quickPanel.isShown {
+            closeQuickPanel()
+            return
+        }
+
+        closeQuickPanel()
+
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+        popover.appearance = NSAppearance(named: .darkAqua)
+        popover.delegate = self
+
+        let root = QuickPanelView(
+            onOpenDashboard: { [weak self] in
+                self?.closeQuickPanel()
+                self?.reopenMainWindow()
+            },
+            onOpenConsole: { [weak self] in
+                self?.closeQuickPanel()
+                self?.openConsole()
+            },
+            onRefresh: { [weak self] in
+                self?.model?.refreshNow()
+            },
+            onQuit: {
+                NSApp.terminate(nil)
+            }
+        )
+        .environmentObject(model)
+        .environment(\.appFontScale, CGFloat(model.fontScale))
+
+        let hosting = NSHostingController(rootView: root)
+        hosting.view.wantsLayer = true
+        hosting.view.layer?.backgroundColor = NSColor.clear.cgColor
+        hosting.view.layoutSubtreeIfNeeded()
+
+        let fitted = hosting.view.fittingSize
+        popover.contentViewController = hosting
+        popover.contentSize = NSSize(width: 360, height: max(240, fitted.height))
+        quickPanel = popover
+
+        guard let button = statusItem?.button else { return }
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func closeQuickPanel() {
+        guard let quickPanel else { return }
+        self.quickPanel = nil
+        quickPanel.performClose(nil)
+    }
+
+    private func resizeQuickPanelIfNeeded() {
+        guard let quickPanel, quickPanel.isShown,
+              let contentView = quickPanel.contentViewController?.view
+        else { return }
+        contentView.layoutSubtreeIfNeeded()
+        let height = contentView.fittingSize.height
+        guard height > 0, abs(height - quickPanel.contentSize.height) > 0.5 else { return }
+        quickPanel.contentSize = NSSize(width: 360, height: max(240, height))
+    }
+
+    private func showContextMenu(for model: AppModel) {
+        guard let button = statusItem?.button else { return }
+        let mode = currentMode
+        let menu = buildMenu(for: model, mode: mode, color: Self.color(for: mode))
+        menu.popUp(
+            positioning: nil,
+            at: NSPoint(x: 0, y: button.bounds.height + 5),
+            in: button
+        )
     }
 
     private func buildMenu(for model: AppModel, mode: Mode, color: NSColor) -> NSMenu {
@@ -228,6 +327,15 @@ final class MenuBarController: NSObject {
         console.isEnabled = true
         menu.addItem(console)
 
+        let star = NSMenuItem(
+            title: "GitHub · 给胡闹点个 Star",
+            action: #selector(openRepository),
+            keyEquivalent: ""
+        )
+        star.target = self
+        star.isEnabled = true
+        menu.addItem(star)
+
         menu.addItem(.separator())
 
         let quit = NSMenuItem(title: "退出胡闹AutoDL", action: #selector(quitApp), keyEquivalent: "q")
@@ -273,7 +381,17 @@ final class MenuBarController: NSObject {
         }
     }
 
+    @objc private func openRepository() {
+        AppLinks.openRepository()
+    }
+
     @objc private func quitApp() {
         NSApp.terminate(nil)
+    }
+}
+
+extension MenuBarController: NSPopoverDelegate {
+    func popoverDidClose(_ notification: Notification) {
+        quickPanel = nil
     }
 }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @EnvironmentObject private var model: AppModel
+    @State private var starHovered = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -28,6 +29,8 @@ struct SidebarView: View {
                         }
                     }
                 }
+
+                starItem
             }
             .padding(.horizontal, 10)
 
@@ -197,6 +200,45 @@ struct SidebarView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(.white.opacity(0.055), lineWidth: 0.6)
         }
+    }
+
+    private var starItem: some View {
+        Button {
+            AppLinks.openRepository()
+        } label: {
+            HStack(spacing: 11) {
+                Image(systemName: "star.fill")
+                    .scaledFont(size: 12.5, weight: .semibold)
+                    .foregroundStyle(AppTheme.amber)
+                    .frame(width: 22)
+
+                Text("点个 Star")
+                    .scaledFont(size: 12.5, weight: .medium)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Spacer()
+
+                Text(AppLinks.author)
+                    .scaledFont(size: 8.5, weight: .bold, design: .rounded)
+                    .foregroundStyle(AppTheme.amber.opacity(0.78))
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 40)
+            .contentShape(Rectangle())
+            .background(
+                AppTheme.amber.opacity(starHovered ? 0.10 : 0.038),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(AppTheme.amber.opacity(0.10), lineWidth: 0.7)
+            }
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.16)) { starHovered = hovering }
+        }
+        .help("作者 \(AppLinks.author) · \(AppLinks.repositoryLabel)")
     }
 
     private var balanceTint: Color {

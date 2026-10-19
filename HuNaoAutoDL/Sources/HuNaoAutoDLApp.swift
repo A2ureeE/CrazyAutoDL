@@ -44,6 +44,7 @@ struct HuNaoAutoDLApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        NSApp.applicationIconImage = AppBrand.icon
         NotificationService.shared.activate()
         NSApp.activate(ignoringOtherApps: true)
     }

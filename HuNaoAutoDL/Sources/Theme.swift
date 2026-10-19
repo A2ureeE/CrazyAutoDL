@@ -1,6 +1,16 @@
 import AppKit
 import SwiftUI
 
+enum AppLinks {
+    static let author = "A2ureeE"
+    static let repositoryURL = URL(string: "https://github.com/A2ureeE/CrazyAutoDL")!
+    static let repositoryLabel = "github.com/A2ureeE/CrazyAutoDL"
+
+    static func openRepository() {
+        NSWorkspace.shared.open(repositoryURL)
+    }
+}
+
 enum AppTheme {
     static let mint = Color(red: 0.38, green: 0.98, blue: 0.76)
     static let aqua = Color(red: 0.33, green: 0.81, blue: 1.00)
@@ -272,41 +282,26 @@ extension View {
     }
 }
 
+enum AppBrand {
+    static let icon: NSImage = {
+        if let url = Bundle.main.url(forResource: "BrandIcon", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            return image
+        }
+        return NSApplication.shared.applicationIconImage ?? NSImage(size: NSSize(width: 512, height: 512))
+    }()
+}
+
 struct BrandMark: View {
     var size: CGFloat = 42
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: size * 0.31, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [AppTheme.mint, AppTheme.aqua, AppTheme.aqua.opacity(0.9)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: size * 0.31, style: .continuous)
-                        .strokeBorder(.white.opacity(0.65), lineWidth: 0.8)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: size * 0.31, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [.white.opacity(0.38), .clear],
-                                startPoint: .topLeading,
-                                endPoint: .center
-                            )
-                        )
-                }
-                .shadow(color: AppTheme.mint.opacity(0.42), radius: size * 0.38, x: 0, y: size * 0.14)
-
-            Image(systemName: "bolt.fill")
-                .scaledFont(size: size * 0.42, weight: .black)
-                .foregroundStyle(Color(red: 0.035, green: 0.12, blue: 0.12))
-                .offset(y: -size * 0.015)
-        }
-        .frame(width: size, height: size)
+        Image(nsImage: AppBrand.icon)
+            .resizable()
+            .interpolation(.high)
+            .frame(width: size, height: size)
+            .shadow(color: .black.opacity(0.38), radius: size * 0.2, x: 0, y: size * 0.09)
+            .accessibilityLabel("胡闹AutoDL")
     }
 }
 
@@ -551,5 +546,16 @@ enum AppFormat {
         let minutes = seconds / 60
         if minutes < 60 { return "\(minutes) 分钟前" }
         return time.string(from: date)
+    }
+
+    static func storage(_ bytes: Int64) -> String {
+        let gib = Double(max(0, bytes)) / 1_073_741_824
+        if gib >= 1024 {
+            return String(format: "%.2f TB", gib / 1024)
+        }
+        if gib >= 100 {
+            return String(format: "%.0f GB", gib)
+        }
+        return String(format: "%.1f GB", gib)
     }
 }

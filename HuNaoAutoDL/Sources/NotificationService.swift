@@ -60,12 +60,29 @@ final class NotificationService: NSObject, ObservableObject {
         content.sound = .default
         content.threadIdentifier = "hunao.autodl.monitor"
 
+        if let iconURL = Bundle.main.url(forResource: "BrandIcon", withExtension: "png") {
+            let copyURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("hunao-notification-\(UUID().uuidString).png")
+            if (try? FileManager.default.copyItem(at: iconURL, to: copyURL)) != nil,
+               let attachment = try? UNNotificationAttachment(
+                   identifier: "hunao.brand",
+                   url: copyURL,
+                   options: nil
+               ) {
+                content.attachments = [attachment]
+            }
+        }
+
         let request = UNNotificationRequest(
             identifier: identifier,
             content: content,
             trigger: nil
         )
-        try? await center.add(request)
+        do {
+            try await center.add(request)
+        } catch {
+            NSLog("HuNaoAutoDL notification error: %@", String(describing: error))
+        }
     }
 
     func openSystemNotificationSettings() {

@@ -69,7 +69,7 @@ struct DashboardView: View {
                     )
                 }
 
-                Text("替你看住显卡，抢卡这件事交给胡闹。")
+                Text("哎呀，这简直是胡！闹！")
                     .scaledFont(size: 11.5)
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -213,9 +213,23 @@ struct DashboardView: View {
 
                         HStack(spacing: 8) {
                             MetaChip(
-                                symbol: "memorychip",
+                                symbol: "cpu",
                                 label: "\(instance.gpuCount) 卡 · \(instance.chargeLabel)"
                             )
+                            MetaChip(
+                                symbol: "memorychip",
+                                label: "内存剩余 \(instance.memoryFreeLabel)"
+                            )
+                            .help("\(instance.memoryDetailLabel) · 当前实例剩余可用内存")
+                        }
+                        .padding(.top, 7)
+
+                        HStack(spacing: 8) {
+                            MetaChip(
+                                symbol: "internaldrive",
+                                label: "存储剩余 \(instance.storageFreeLabel)"
+                            )
+                            .help("\(instance.storageDetailLabel) · 当前实例剩余可用存储")
                             MetaChip(
                                 symbol: "clock",
                                 label: "更新于 \(AppFormat.relative(model.lastUpdated))"
@@ -434,6 +448,12 @@ struct DashboardView: View {
                             .scaledFont(size: 9.5)
                             .foregroundStyle(AppTheme.textTertiary)
                             .lineLimit(1)
+                        Text("内存剩余 \(instance.memoryFreeLabel) · 存储剩余 \(instance.storageFreeLabel)")
+                            .scaledFont(size: 8.5, weight: .medium)
+                            .foregroundStyle(AppTheme.aqua.opacity(0.72))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .help("\(instance.memoryDetailLabel) · \(instance.storageDetailLabel)")
                     }
 
                     Spacer(minLength: 6)

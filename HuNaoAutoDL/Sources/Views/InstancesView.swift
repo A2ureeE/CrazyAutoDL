@@ -274,9 +274,13 @@ private struct InstanceRow: View {
                         symbol: "server.rack",
                         text: instance.machineID.isEmpty ? "主机待同步" : instance.machineID
                     )
+                    MetaItem(symbol: "internaldrive", text: "剩余 \(instance.storageFreeLabel)")
+                        .help("\(instance.storageDetailLabel) · 当前实例剩余可用存储")
                 }
 
                 HStack(spacing: 12) {
+                    MetaItem(symbol: "memorychip", text: "内存剩余 \(instance.memoryFreeLabel)")
+                        .help("\(instance.memoryDetailLabel) · 当前实例剩余可用内存")
                     MetaItem(symbol: "creditcard", text: instance.chargeLabel)
                     MetaItem(symbol: "number", text: "实例 \(instance.shortID)")
                     if let startedAt = instance.startedAt, instance.state == .running {

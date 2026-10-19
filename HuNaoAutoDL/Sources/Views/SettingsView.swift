@@ -478,10 +478,35 @@ struct SettingsView: View {
                                 .foregroundStyle(AppTheme.mint)
                         }
                         .scaledFont(size: 15, weight: .bold, design: .rounded)
-                        Text("Version 1.0.0 · macOS 15+")
+                        Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.1") · macOS 15+")
                             .scaledFont(size: 9)
                             .foregroundStyle(AppTheme.textTertiary)
                     }
+                }
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Button(action: AppLinks.openRepository) {
+                        HStack(spacing: 7) {
+                            Image(systemName: "star.fill")
+                                .scaledFont(size: 9, weight: .bold)
+                            Text("去 GitHub 给胡闹点个 Star")
+                            Spacer(minLength: 0)
+                            Image(systemName: "arrow.up.right")
+                                .scaledFont(size: 8, weight: .bold)
+                                .opacity(0.65)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(ActionButtonStyle(tint: AppTheme.amber, prominent: true))
+
+                    HStack(spacing: 4) {
+                        Text("作者 \(AppLinks.author)")
+                        Text("·")
+                        Link(AppLinks.repositoryLabel, destination: AppLinks.repositoryURL)
+                            .foregroundStyle(AppTheme.aqua.opacity(0.88))
+                    }
+                    .scaledFont(size: 9)
+                    .foregroundStyle(AppTheme.textTertiary)
                 }
 
                 SettingRow(label: "数据存储", value: "仅本机")
