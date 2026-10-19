@@ -28,6 +28,8 @@ struct DashboardView: View {
                     .frame(width: 288)
                 }
 
+                resourceDeck
+
                 HStack(alignment: .top, spacing: 16) {
                     activityCard
                         .frame(maxWidth: .infinity, minHeight: 228)
@@ -217,20 +219,6 @@ struct DashboardView: View {
                                 label: "\(instance.gpuCount) 卡 · \(instance.chargeLabel)"
                             )
                             MetaChip(
-                                symbol: "memorychip",
-                                label: "内存剩余 \(instance.memoryFreeLabel)"
-                            )
-                            .help("\(instance.memoryDetailLabel) · 当前实例剩余可用内存")
-                        }
-                        .padding(.top, 7)
-
-                        HStack(spacing: 8) {
-                            MetaChip(
-                                symbol: "internaldrive",
-                                label: "存储剩余 \(instance.storageFreeLabel)"
-                            )
-                            .help("\(instance.storageDetailLabel) · 当前实例剩余可用存储")
-                            MetaChip(
                                 symbol: "clock",
                                 label: "更新于 \(AppFormat.relative(model.lastUpdated))"
                             )
@@ -306,6 +294,120 @@ struct DashboardView: View {
                 .tracking(0.5)
                 .foregroundStyle(hasStock ? AppTheme.mint.opacity(0.78) : AppTheme.textTertiary)
                 .frame(width: 46, alignment: .trailing)
+        }
+    }
+
+    private var resourceDeck: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 5) {
+                    EyebrowLabel(text: "Runtime Resources", tint: AppTheme.violet)
+                    Text("实例资源余量")
+                        .scaledFont(size: 16, weight: .semibold)
+                        .foregroundStyle(AppTheme.textPrimary)
+                }
+
+                Spacer()
+
+                if let instance = model.selectedInstance {
+                    StatusPill(label: instance.state.label, tint: instance.state.tint)
+                } else {
+                    StatusPill(label: "未选择实例", tint: AppTheme.textSecondary)
+                }
+            }
+
+            if let instance = model.selectedInstance {
+                HStack(alignment: .center, spacing: 24) {
+                    ResourceOrbitGauge(
+                        title: "剩余内存",
+                        freeLabel: instance.memoryFreeLabel,
+                        detail: instance.memoryTotal.map { "共 \(AppFormat.storage($0))" } ?? "待同步",
+                        freeFraction: instance.memoryUsedFraction.map { 1 - $0 },
+                        tint: AppTheme.violet
+                    )
+                    .help("\(instance.memoryDetailLabel) · 当前实例剩余可用内存")
+
+                    ResourceOrbitGauge(
+                        title: "剩余存储",
+                        freeLabel: instance.storageFreeLabel,
+                        detail: instance.storageTotalBytes.map { "共 \(AppFormat.storage($0))" } ?? "待同步",
+                        freeFraction: instance.storageUsedFraction.map { 1 - $0 },
+                        tint: AppTheme.aqua
+                    )
+                    .help("\(instance.storageDetailLabel) · 当前实例剩余可用存储")
+
+                    Rectangle()
+                        .fill(.white.opacity(0.07))
+                        .frame(width: 0.6, height: 82)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        resourceDetailRow(
+                            symbol: "memorychip",
+                            title: "运行内存",
+                            value: instance.memoryDetailLabel,
+                            tint: AppTheme.violet
+                        )
+                        resourceDetailRow(
+                            symbol: "internaldrive",
+                            title: "磁盘空间",
+                            value: instance.storageDetailLabel,
+                            tint: AppTheme.aqua
+                        )
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .scaledFont(size: 8, weight: .semibold)
+                            Text("随每次刷新同步 · 每 \(Int(model.pollInterval)) 秒")
+                                .scaledFont(size: 8.5, weight: .medium)
+                        }
+                        .foregroundStyle(AppTheme.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.top, 14)
+            } else {
+                EmptyStateView(
+                    symbol: "gauge.with.dots.needle.33percent",
+                    title: "暂无资源数据",
+                    message: "选择实例后，这里会显示内存与存储的圆形余量仪表。"
+                )
+                .frame(height: 130)
+            }
+        }
+        .padding(20)
+        .glassPanel(cornerRadius: 24, tint: AppTheme.violet)
+        .overlay(alignment: .topTrailing) {
+            Circle()
+                .fill(AppTheme.violet.opacity(0.10))
+                .frame(width: 170, height: 170)
+                .blur(radius: 60)
+                .offset(x: 76, y: -74)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private func resourceDetailRow(
+        symbol: String,
+        title: String,
+        value: String,
+        tint: Color
+    ) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: symbol)
+                .scaledFont(size: 10, weight: .semibold)
+                .foregroundStyle(tint.opacity(0.85))
+                .frame(width: 24, height: 24)
+                .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 1.5) {
+                Text(title)
+                    .scaledFont(size: 8.5, weight: .medium)
+                    .foregroundStyle(AppTheme.textTertiary)
+                Text(value)
+                    .scaledFont(size: 10.5, weight: .semibold)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
         }
     }
 
@@ -911,6 +1013,99 @@ private struct GPUOrbitGauge: View {
         .frame(width: 152, height: 152)
         .onAppear {
             withAnimation(.linear(duration: 22).repeatForever(autoreverses: false)) {
+                orbit = true
+            }
+        }
+    }
+}
+
+private struct ResourceOrbitGauge: View {
+    let title: String
+    let freeLabel: String
+    let detail: String
+    let freeFraction: Double?
+    let tint: Color
+
+    @State private var orbit = false
+
+    private var progress: CGFloat {
+        guard let freeFraction else { return 0.035 }
+        return CGFloat(max(0.035, min(freeFraction, 1)))
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [tint.opacity(0.13), .clear],
+                        center: .center,
+                        startRadius: 6,
+                        endRadius: 58
+                    )
+                )
+
+            Circle()
+                .stroke(.white.opacity(0.055), lineWidth: 8)
+                .padding(5)
+
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    AngularGradient(
+                        colors: [tint.opacity(0.32), tint, tint],
+                        center: .center,
+                        startAngle: .degrees(0),
+                        endAngle: .degrees(360)
+                    ),
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .padding(5)
+                .shadow(color: tint.opacity(0.38), radius: 7)
+                .animation(.spring(response: 0.7, dampingFraction: 0.82), value: progress)
+
+            Circle()
+                .stroke(
+                    tint.opacity(0.20),
+                    style: StrokeStyle(lineWidth: 0.6, dash: [2, 6])
+                )
+                .padding(17)
+                .rotationEffect(.degrees(orbit ? 360 : 0))
+
+            Circle()
+                .fill(tint)
+                .frame(width: 3, height: 3)
+                .offset(y: -46)
+                .rotationEffect(.degrees(orbit ? 360 : 0))
+                .opacity(0.78)
+                .shadow(color: tint.opacity(0.8), radius: 3)
+
+            VStack(spacing: 1) {
+                Text(freeLabel)
+                    .scaledFont(size: 20, weight: .bold, design: .rounded)
+                    .tracking(-0.6)
+                    .foregroundStyle(tint)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+
+                Text(title)
+                    .scaledFont(size: 8, weight: .semibold)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Text(detail)
+                    .scaledFont(size: 7, weight: .medium)
+                    .foregroundStyle(AppTheme.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .padding(.top, 1)
+            }
+            .padding(.horizontal, 20)
+        }
+        .frame(width: 112, height: 112)
+        .onAppear {
+            withAnimation(.linear(duration: 26).repeatForever(autoreverses: false)) {
                 orbit = true
             }
         }
