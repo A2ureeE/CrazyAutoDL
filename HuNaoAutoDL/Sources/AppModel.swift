@@ -285,6 +285,7 @@ final class AppModel: ObservableObject {
         token = nil
         tokenHint = ""
         TokenStore.deleteToken()
+        LoginWebSession.clear()
         phase = .loggedOut
         signedInAt = nil
         instances = []
@@ -314,6 +315,7 @@ final class AppModel: ObservableObject {
         token = nil
         tokenHint = ""
         TokenStore.deleteToken()
+        LoginWebSession.clear()
         phase = .loggedOut
         signedInAt = nil
         stock = nil

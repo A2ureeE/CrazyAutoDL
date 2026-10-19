@@ -164,6 +164,7 @@ open "/Applications/胡闹AutoDL.app"
 - 不使用 Keychain，因此不会反复弹出系统密码框。
 - 应用只向 `https://www.autodl.com` 发起请求，不经过任何第三方服务器。
 - 通知由 macOS 本地 `UserNotifications` 框架发送，不上传设备信息。
+- 退出登录会同时删除本地 Token，并清空内嵌登录网页的 Cookie、缓存与站点数据。
 - `--demo` 演示模式使用内置数据，不发起网络请求，也不会读写你的 Token。
 
 ## 技术说明

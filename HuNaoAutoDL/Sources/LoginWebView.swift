@@ -1,6 +1,19 @@
 import SwiftUI
 import WebKit
 
+enum LoginWebSession {
+    static func clear() {
+        let store = WKWebsiteDataStore.default()
+        store.removeData(
+            ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
+            modifiedSince: .distantPast
+        ) {
+            HTTPCookieStorage.shared.removeCookies(since: .distantPast)
+            URLCache.shared.removeAllCachedResponses()
+        }
+    }
+}
+
 struct LoginWebView: NSViewRepresentable {
     @Binding var isLoading: Bool
     @Binding var loadError: String?
@@ -12,7 +25,9 @@ struct LoginWebView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .default()
+        // 每次登录都必须从干净会话开始，否则退出后 AutoDL 的 Cookie
+        // 会把登录页直接重定向回上一次的账户。
+        configuration.websiteDataStore = .nonPersistent()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
 
         let userContentController = WKUserContentController()
@@ -161,6 +176,8 @@ struct LoginWebView: NSViewRepresentable {
 
       function scan() {
         try {
+          var path = String(window.location.pathname || '');
+          if (path.indexOf('/login') === 0 || path.indexOf('/register') === 0 || path.indexOf('/forget') === 0) { return; }
           var keys = ['token', 'Token', 'access_token', 'autodl_token', 'Authorization'];
           for (var i = 0; i < keys.length; i++) {
             var value = window.localStorage.getItem(keys[i]);
