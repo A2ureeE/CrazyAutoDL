@@ -1,0 +1,5 @@
+.DS_Store
+dist/
+HuNaoAutoDL/.build/
+HuNaoAutoDL/Resources/AppIcon.iconset/
+vibe_images/
