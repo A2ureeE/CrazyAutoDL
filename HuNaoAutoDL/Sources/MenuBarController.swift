@@ -84,6 +84,12 @@ final class MenuBarController: NSObject {
                 DispatchQueue.main.async { self?.refresh() }
             }
             .store(in: &cancellables)
+        model.updater.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.refresh() }
+            }
+            .store(in: &cancellables)
         refresh()
     }
 
@@ -327,6 +333,27 @@ final class MenuBarController: NSObject {
         console.isEnabled = true
         menu.addItem(console)
 
+        let update = NSMenuItem(
+            title: updateMenuTitle(for: model),
+            action: #selector(checkForUpdates),
+            keyEquivalent: ""
+        )
+        update.target = self
+        update.isEnabled = !model.updater.isBusy
+        if model.updater.showsUpdateAttention {
+            update.attributedTitle = NSAttributedString(
+                string: update.title,
+                attributes: [
+                    .font: NSFont.menuFont(ofSize: 13),
+                    .foregroundColor: Self.dynamicColor(
+                        dark: (1.00, 0.76, 0.34),
+                        light: (0.72, 0.38, 0.00)
+                    )
+                ]
+            )
+        }
+        menu.addItem(update)
+
         let star = NSMenuItem(
             title: "GitHub · 给胡闹AutoDL 点个 Star",
             action: #selector(openRepository),
@@ -373,6 +400,37 @@ final class MenuBarController: NSObject {
 
     @objc private func refreshNow() {
         model?.refreshNow()
+    }
+
+    @objc private func checkForUpdates() {
+        guard let model else { return }
+        model.selectedSection = .settings
+        reopenMainWindow()
+        switch model.updater.phase {
+        case .idle, .upToDate, .failed:
+            Task { await model.updater.check() }
+        default:
+            break
+        }
+    }
+
+    private func updateMenuTitle(for model: AppModel) -> String {
+        switch model.updater.phase {
+        case .available:
+            return "发现新版本 v\(model.updater.release?.version ?? "") · 去更新"
+        case .downloading:
+            return "正在下载更新 \(Int((model.updater.progress * 100).rounded()))%"
+        case .preparing:
+            return "正在校验更新安装包…"
+        case .readyToInstall:
+            return "更新已就绪 · 重启安装"
+        case .checking:
+            return "正在检查更新…"
+        case .installing:
+            return "正在安装更新…"
+        default:
+            return "检查更新…"
+        }
     }
 
     @objc private func openConsole() {

@@ -10,6 +10,7 @@ struct HuNaoAutoDLApp: App {
         Window("胡闹AutoDL", id: "main") {
             RootView()
                 .environmentObject(model)
+                .environmentObject(model.updater)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
@@ -17,6 +18,17 @@ struct HuNaoAutoDLApp: App {
         .defaultPosition(.center)
         .commands {
             CommandGroup(replacing: .newItem) {}
+
+            CommandGroup(after: .appInfo) {
+                Button("检查更新…") {
+                    model.selectedSection = .settings
+                    MenuBarController.shared.reopenMainWindow()
+                    Task { await model.updater.check() }
+                }
+                .disabled(model.updater.isBusy)
+
+                Divider()
+            }
 
             CommandMenu("监控") {
                 Button("立即刷新") {

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var updater: UpdateService
     @State private var starHovered = false
 
     var body: some View {
@@ -22,7 +23,8 @@ struct SidebarView: View {
                 ForEach(SidebarSection.allCases) { section in
                     SidebarItem(
                         section: section,
-                        isSelected: model.selectedSection == section
+                        isSelected: model.selectedSection == section,
+                        showsUpdateBadge: section == .settings && updater.showsUpdateAttention
                     ) {
                         withAnimation(.smooth(duration: 0.32)) {
                             model.selectedSection = section
@@ -255,6 +257,7 @@ struct SidebarView: View {
 private struct SidebarItem: View {
     let section: SidebarSection
     let isSelected: Bool
+    var showsUpdateBadge = false
     let action: () -> Void
 
     @State private var hovered = false
@@ -272,6 +275,19 @@ private struct SidebarItem: View {
                     .foregroundStyle(isSelected ? AppTheme.textPrimary : AppTheme.textSecondary)
 
                 Spacer()
+
+                if showsUpdateBadge && !isSelected {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(AppTheme.amber)
+                            .frame(width: 4, height: 4)
+                            .shadow(color: AppTheme.amber.opacity(0.9), radius: 4)
+                        Text("NEW")
+                            .scaledFont(size: 7, weight: .bold, design: .rounded)
+                            .tracking(0.6)
+                            .foregroundStyle(AppTheme.amber.opacity(0.9))
+                    }
+                }
 
                 if isSelected {
                     Circle()

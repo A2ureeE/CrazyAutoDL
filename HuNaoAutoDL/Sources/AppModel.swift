@@ -59,6 +59,7 @@ final class AppModel: ObservableObject {
     @Published var toast: ToastMessage?
 
     let notifications = NotificationService.shared
+    let updater = UpdateService()
 
     private let defaults = UserDefaults.standard
     private let isDemo: Bool

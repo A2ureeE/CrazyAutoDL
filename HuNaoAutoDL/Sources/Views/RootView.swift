@@ -34,6 +34,14 @@ struct RootView: View {
         .task {
             model.notifications.activate()
             await model.notifications.refreshAuthorizationStatus()
+            await model.updater.autoCheckIfNeeded()
+            if model.updater.isUpdateAvailable, let release = model.updater.release {
+                model.presentToast(
+                    kind: .info,
+                    title: "发现新版本 \(release.version)",
+                    message: "打开「设置 → 版本更新」即可在应用内完成更新。"
+                )
+            }
         }
     }
 

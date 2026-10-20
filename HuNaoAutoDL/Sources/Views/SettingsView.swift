@@ -1,8 +1,10 @@
+import AppKit
 import SwiftUI
 import UserNotifications
 
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var updater: UpdateService
     @ObservedObject private var notifications = NotificationService.shared
 
     @State private var showLogoutConfirmation = false
@@ -14,6 +16,7 @@ struct SettingsView: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 16) {
                 header
+                updateCard
 
                 HStack(alignment: .top, spacing: 16) {
                     VStack(spacing: 16) {
@@ -55,11 +58,439 @@ struct SettingsView: View {
                     .tracking(-0.6)
                 StatusPill(label: "本地运行", tint: AppTheme.mint)
             }
-            Text("调整检查节奏、通知方式与账户连接。")
+            Text("调整检查节奏、通知方式、应用更新与账户连接。")
                 .scaledFont(size: 11.5)
                 .foregroundStyle(AppTheme.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var updateCard: some View {
+        SettingsCard(
+            eyebrow: "Updates",
+            title: "版本更新",
+            symbol: updateSymbol,
+            tint: updateTint
+        ) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(updateHeadline)
+                            .scaledFont(size: 13, weight: .semibold)
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(updateSubtitle)
+                            .scaledFont(size: 9.5)
+                            .foregroundStyle(AppTheme.textTertiary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 12)
+
+                    HStack(spacing: 8) {
+                        StatusPill(
+                            label: "当前 v\(updater.currentVersion)",
+                            tint: AppTheme.aqua,
+                            showsDot: false
+                        )
+                        updateActions
+                    }
+                }
+
+                if showsReleaseNotes, let release = updater.release {
+                    releaseNotes(release)
+                }
+
+                if showsProgressBlock {
+                    progressBlock
+                }
+
+                if showsStarBanner {
+                    updateStarBanner
+                }
+            }
+            .animation(.smooth(duration: 0.25), value: updater.phase)
+        }
+    }
+
+    private func releaseNotes(_ release: AppRelease) -> some View {
+        let notes = release.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 8) {
+                Text("v\(release.version) 更新内容")
+                    .scaledFont(size: 10, weight: .semibold)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Text(release.assetName)
+                    .scaledFont(size: 8, design: .monospaced)
+                    .foregroundStyle(AppTheme.textTertiary)
+                    .lineLimit(1)
+
+                Spacer()
+
+                Link(destination: release.pageURL) {
+                    HStack(spacing: 3) {
+                        Text("发布页")
+                        Image(systemName: "arrow.up.right")
+                            .scaledFont(size: 7, weight: .bold)
+                    }
+                    .scaledFont(size: 9, weight: .semibold)
+                    .foregroundStyle(AppTheme.aqua.opacity(0.88))
+                }
+            }
+
+            Text(notes.isEmpty ? "本次更新暂无详细说明。" : notes)
+                .scaledFont(size: 9.5)
+                .foregroundStyle(AppTheme.textSecondary.opacity(0.88))
+                .lineSpacing(2.5)
+                .lineLimit(5)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(.white.opacity(0.055), lineWidth: 0.6)
+        }
+    }
+
+    private var progressBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text(progressCaption)
+                    .scaledFont(size: 10, weight: .semibold)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Spacer()
+
+                Text(progressPercentLabel)
+                    .scaledFont(size: 10, weight: .bold, design: .rounded)
+                    .foregroundStyle(updateTint)
+                    .monospacedDigit()
+            }
+
+            UpdateProgressBar(progress: progressValue, tint: updateTint)
+
+            HStack(spacing: 6) {
+                Image(systemName: "lock.shield.fill")
+                    .scaledFont(size: 8, weight: .semibold)
+                Text(progressFootnote)
+                    .lineLimit(1)
+
+                Spacer()
+
+                if let lastCheckedAt = updater.lastCheckedAt {
+                    Text("检查于 \(AppFormat.relative(lastCheckedAt))")
+                }
+            }
+            .scaledFont(size: 8.5, weight: .medium)
+            .foregroundStyle(AppTheme.textTertiary)
+        }
+        .padding(12)
+        .background(updateTint.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(updateTint.opacity(0.14), lineWidth: 0.6)
+        }
+    }
+
+    private var updateStarBanner: some View {
+        Button(action: AppLinks.openRepository) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.amber.opacity(0.13))
+                        .frame(width: 30, height: 30)
+                    Image(systemName: "star.fill")
+                        .scaledFont(size: 11, weight: .semibold)
+                        .foregroundStyle(AppTheme.amber)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(starHeadline)
+                        .scaledFont(size: 10.5, weight: .semibold)
+                        .foregroundStyle(AppTheme.textPrimary)
+                    Text("开源免费 · 每颗 Star 都是作者 \(AppLinks.author) 持续更新的动力")
+                        .scaledFont(size: 8.5)
+                        .foregroundStyle(AppTheme.textTertiary)
+                }
+
+                Spacer(minLength: 8)
+
+                HStack(spacing: 4) {
+                    Text("去点 Star")
+                    Image(systemName: "arrow.up.right")
+                        .scaledFont(size: 7.5, weight: .bold)
+                }
+                .scaledFont(size: 9.5, weight: .bold)
+                .foregroundStyle(AppTheme.amber)
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .background(
+                LinearGradient(
+                    colors: [AppTheme.amber.opacity(0.085), AppTheme.amber.opacity(0.025)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(AppTheme.amber.opacity(0.16), lineWidth: 0.6)
+            }
+        }
+        .buttonStyle(.plain)
+        .help("去 GitHub 给胡闹AutoDL 点个 Star")
+    }
+
+    @ViewBuilder
+    private var updateActions: some View {
+        switch updater.phase {
+        case .checking:
+            progressLabel("检查中…")
+        case .idle, .upToDate:
+            Button {
+                Task { await updater.check() }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .scaledFont(size: 9, weight: .semibold)
+                    Text("检查更新")
+                }
+            }
+            .buttonStyle(ActionButtonStyle(tint: AppTheme.aqua))
+        case .available:
+            Button {
+                updater.download()
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .scaledFont(size: 9, weight: .semibold)
+                    Text("下载更新")
+                }
+            }
+            .buttonStyle(ActionButtonStyle(tint: AppTheme.mint, prominent: true))
+        case .downloading:
+            Button {
+                updater.cancelDownload()
+            } label: {
+                Text("取消下载")
+            }
+            .buttonStyle(ActionButtonStyle(tint: AppTheme.rose))
+        case .preparing:
+            progressLabel("校验中…")
+        case .readyToInstall:
+            Button {
+                updater.install()
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.clockwise.circle.fill")
+                        .scaledFont(size: 9, weight: .semibold)
+                    Text("重启并安装")
+                }
+            }
+            .buttonStyle(ActionButtonStyle(tint: AppTheme.mint, prominent: true))
+        case .installing:
+            progressLabel("即将重启…")
+        case .failed:
+            Button {
+                updater.retry()
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.clockwise")
+                        .scaledFont(size: 9, weight: .semibold)
+                    Text("重试")
+                }
+            }
+            .buttonStyle(ActionButtonStyle(tint: AppTheme.amber, prominent: true))
+        }
+    }
+
+    private func progressLabel(_ text: String) -> some View {
+        HStack(spacing: 7) {
+            ProgressView()
+                .controlSize(.mini)
+                .scaleEffect(0.75)
+            Text(text)
+        }
+        .scaledFont(size: 10, weight: .medium)
+        .foregroundStyle(AppTheme.textSecondary)
+    }
+
+    private var updateSymbol: String {
+        switch updater.phase {
+        case .failed: return "exclamationmark.triangle.fill"
+        case .available, .readyToInstall: return "arrow.down.circle.fill"
+        case .downloading, .preparing, .installing: return "arrow.triangle.2.circlepath.circle.fill"
+        default: return "arrow.triangle.2.circlepath"
+        }
+    }
+
+    private var updateTint: Color {
+        switch updater.phase {
+        case .failed: return AppTheme.rose
+        case .available, .readyToInstall: return AppTheme.mint
+        case .downloading, .preparing, .installing, .checking: return AppTheme.aqua
+        default: return AppTheme.violet
+        }
+    }
+
+    private var updateHeadline: String {
+        switch updater.phase {
+        case .idle:
+            return "更新检测已就绪"
+        case .checking:
+            return "正在检查新版本…"
+        case .upToDate:
+            return "已是最新版本"
+        case .available:
+            return "发现新版本 v\(updater.release?.version ?? "")"
+        case .downloading:
+            return "正在下载 v\(updater.release?.version ?? "")"
+        case .preparing:
+            return "正在校验安装包…"
+        case .readyToInstall:
+            return "更新已就绪，等待重启"
+        case .installing:
+            return "正在安装更新…"
+        case .failed(let message):
+            return "更新未完成 · \(message)"
+        }
+    }
+
+    private var updateSubtitle: String {
+        switch updater.phase {
+        case .idle:
+            return "每 24 小时自动检查一次，也可以随时手动检查。"
+        case .checking:
+            return "正在连接 GitHub Releases 获取最新版本信息。"
+        case .upToDate:
+            if let last = updater.lastCheckedAt {
+                return "当前 v\(updater.currentVersion) 已是最新版本 · 检查于 \(AppFormat.relative(last))。"
+            }
+            return "当前 v\(updater.currentVersion) 已是最新版本。"
+        case .available:
+            return "下载、校验和安装都在应用内完成，无需打开 GitHub。"
+        case .downloading:
+            return "下载完成后会校验 SHA-256 与代码签名，再提示你重启安装。"
+        case .preparing:
+            return "正在核对安装包摘要、版本号和代码签名。"
+        case .readyToInstall:
+            return "安装包已通过校验，重启后会替换旧版本并自动重新打开。"
+        case .installing:
+            return "胡闹AutoDL 即将退出，更新完成后会自动重新启动。"
+        case .failed:
+            return "可以重试，或前往 GitHub 发布页手动下载安装包。"
+        }
+    }
+
+    private var showsReleaseNotes: Bool {
+        guard updater.release != nil else { return false }
+        switch updater.phase {
+        case .available, .downloading, .preparing, .readyToInstall, .installing, .failed:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var showsProgressBlock: Bool {
+        switch updater.phase {
+        case .downloading, .preparing, .readyToInstall, .installing:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var showsStarBanner: Bool {
+        guard updater.release != nil else { return false }
+        switch updater.phase {
+        case .available, .downloading, .preparing, .readyToInstall, .installing, .failed:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var progressCaption: String {
+        switch updater.phase {
+        case .downloading: return "下载进度"
+        case .preparing: return "安全校验"
+        case .readyToInstall: return "安装包已就绪"
+        case .installing: return "正在替换应用"
+        default: return ""
+        }
+    }
+
+    private var progressPercentLabel: String {
+        switch updater.phase {
+        case .downloading:
+            return "\(Int((updater.progress * 100).rounded()))%"
+        case .preparing:
+            return "校验中"
+        case .readyToInstall:
+            return "100%"
+        case .installing:
+            return "即将重启"
+        default:
+            return ""
+        }
+    }
+
+    private var progressValue: Double? {
+        switch updater.phase {
+        case .downloading: return updater.progress
+        case .preparing, .installing: return nil
+        case .readyToInstall: return 1
+        default: return nil
+        }
+    }
+
+    private var progressFootnote: String {
+        switch updater.phase {
+        case .downloading:
+            return "\(bytesText(updater.receivedBytes)) / \(bytesText(updater.totalBytes)) · 安装包仅保存到本机"
+        case .preparing:
+            return "校验 SHA-256、版本号与代码签名"
+        case .readyToInstall:
+            return "签名有效 · 重启后替换当前应用"
+        case .installing:
+            return "应用退出后由本机脚本完成替换"
+        default:
+            return ""
+        }
+    }
+
+    private var starHeadline: String {
+        switch updater.phase {
+        case .available:
+            return "发现新版本，顺手给胡闹AutoDL 点个 Star 吧"
+        case .downloading:
+            return "更新下载中，点个 Star 支持作者"
+        case .preparing:
+            return "正在校验更新，点个 Star 支持作者"
+        case .readyToInstall:
+            return "更新已就绪，点个 Star 再重启"
+        case .installing:
+            return "正在安装更新，感谢你的 Star"
+        case .failed:
+            return "更新遇到问题，也可以去 GitHub 看看"
+        default:
+            return "喜欢胡闹AutoDL？去 GitHub 点个 Star 吧"
+        }
+    }
+
+    private func bytesText(_ bytes: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: max(0, bytes), countStyle: .file)
     }
 
     private var accountCard: some View {
@@ -633,5 +1064,63 @@ private struct SettingRow: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
+    }
+}
+
+private struct UpdateProgressBar: View {
+    let progress: Double?
+    var tint: Color = AppTheme.aqua
+
+    @State private var shimmer = false
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.white.opacity(0.06))
+
+                if let progress {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [tint, AppTheme.aqua],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(
+                            width: max(
+                                width * min(max(progress, 0), 1),
+                                progress > 0 ? 6 : 0
+                            )
+                        )
+                        .shadow(color: tint.opacity(0.45), radius: 6)
+                } else {
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [.clear, tint.opacity(0.85), .clear],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: max(width * 0.35, 40))
+                        .offset(x: shimmer ? width : -width * 0.35)
+                }
+            }
+            .clipShape(Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(.white.opacity(0.07), lineWidth: 0.5)
+            }
+        }
+        .frame(height: 8)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.15).repeatForever(autoreverses: false)) {
+                shimmer = true
+            }
+        }
+        .animation(.smooth(duration: 0.25), value: progress)
     }
 }

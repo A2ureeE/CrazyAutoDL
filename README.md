@@ -12,12 +12,12 @@
   <img src="https://img.shields.io/badge/macOS-15%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 15+">
   <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-6e56cf?style=flat-square" alt="Apple Silicon">
   <img src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6">
-  <img src="https://img.shields.io/badge/version-1.1.1-34c759?style=flat-square" alt="Version 1.1.1">
+  <img src="https://img.shields.io/badge/version-1.2.0-34c759?style=flat-square" alt="Version 1.2.0">
 </p>
 
 <p align="center">
   <a href="https://github.com/A2ureeE/CrazyAutoDL/releases/latest">
-    <img src="https://img.shields.io/badge/下载-macOS%20v1.1.1-34c759?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 版">
+    <img src="https://img.shields.io/badge/下载-macOS%20v1.2.0-34c759?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 版">
   </a>
 </p>
 
@@ -74,6 +74,7 @@ AutoDL 的闲置 GPU 就像食堂最后一份糖醋排骨：犹豫几秒，就�
 | 余额监控 | 查询现金、冻结金额与代金券；低于阈值时只提醒一次 |
 | 账单看板 | 35 天账单同步、日消费柱状图、消费构成与流水明细 |
 | 菜单栏速览 | 点击菜单栏图标即可查看状态、切换目标、控制自动开机 |
+| 应用内更新 | 自动检查 GitHub Release，在应用内下载、校验、重启安装，无需打开浏览器 |
 | 原生通知 | 空闲卡、自动开机结果、余额不足与测试通知 |
 | 内嵌登录 | 在应用内完成 AutoDL 登录，自动捕获 Token，无需手动复制 |
 | 本地 Token | 写入 `0600` 权限文件，不触发 Keychain 弹窗 |
@@ -158,11 +159,24 @@ open "/Applications/胡闹AutoDL.app"
 
 关闭主窗口后应用仍会在菜单栏运行，自动开机监控不会中断。
 
+### 7. 应用内更新
+
+应用每 24 小时自动检查一次新版本，也可以随时在「设置 → 版本更新」或菜单栏右键菜单中手动检查。
+
+发现新版本后，下载、校验和安装都在应用内完成：
+
+- 下载过程显示实时进度条，可随时取消。
+- 安装包先校验 GitHub 提供的 SHA-256 摘要，再核对 Bundle ID、版本号与代码签名。
+- 校验通过后点击「重启并安装」，应用会自动退出、替换旧版本并重新打开，无需拖拽或访问 GitHub。
+- 下载与校验期间，更新卡片会展示 Star 引导，欢迎顺手支持作者。
+
+> 1.1.1 及更早版本没有内置更新器，需要手动下载一次 1.2.0；从 1.2.0 起即可在应用内完成后续更新。
+
 ## 数据与隐私
 
 - Token 保存在 `~/Library/Application Support/HuNaoAutoDL/session.token`，文件权限 `0600`，目录权限 `0700`，并标记为不参与备份。
 - 不使用 Keychain，因此不会反复弹出系统密码框。
-- 应用只向 `https://www.autodl.com` 发起请求，不经过任何第三方服务器。
+- 应用只向 `https://www.autodl.com` 发起账户请求；检查更新与下载安装包时仅访问 `https://api.github.com` 和 `https://github.com`，不经过任何第三方服务器。
 - 通知由 macOS 本地 `UserNotifications` 框架发送，不上传设备信息。
 - 退出登录会同时删除本地 Token，并清空内嵌登录网页的 Cookie、缓存与站点数据。
 - `--demo` 演示模式使用内置数据，不发起网络请求，也不会读写你的 Token。
@@ -218,6 +232,7 @@ CrazyAutoDL/
 │   │   ├── Models.swift      # 实例、余额、账单模型
 │   │   ├── DemoData.swift    # 演示数据
 │   │   ├── TokenStore.swift  # 本地 Token 存储
+│   │   ├── UpdateService.swift # 更新检查、下载、校验与安装
 │   │   ├── LoginWebView.swift
 │   │   ├── NotificationService.swift
 │   │   ├── MenuBarController.swift
