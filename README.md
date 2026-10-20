@@ -6,10 +6,11 @@
 
 <p align="center"><strong>哎呀，这简直是胡！闹！</strong></p>
 
-<p align="center">一个原生 macOS 的 AutoDL 实例监控与自动开机工具。<br>盯住空闲显卡，出现即开机，顺便把余额、内存、存储和账单都整理明白。</p>
+<p align="center">一个原生桌面 AutoDL 实例监控与自动开机工具。<br>盯住空闲显卡，出现即开机，顺便把余额、内存、存储和账单都整理明白。</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-15%2B-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 15+">
+  <img src="https://img.shields.io/badge/Windows-10%2B-0078D4?style=flat-square&logo=windows&logoColor=white" alt="Windows 10+">
   <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-6e56cf?style=flat-square" alt="Apple Silicon">
   <img src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6">
   <img src="https://img.shields.io/badge/version-1.2.0-34c759?style=flat-square" alt="Version 1.2.0">
@@ -27,7 +28,7 @@
 
 AutoDL 的闲置 GPU 就像食堂最后一份糖醋排骨：犹豫几秒，就没了。
 
-胡闹AutoDL 是一个常驻菜单栏的 macOS 小工具。它会按你设定的节奏轮询目标实例所在的 GPU 池，一旦发现空闲显卡，立刻通知你，或者直接帮你把实例开机。没有网页标签页，没有反复刷新，也没有 Keychain 密码弹窗。
+胡闹AutoDL 是一个常驻菜单栏或系统托盘的小工具。它会按你设定的节奏轮询目标实例所在的 GPU 池，一旦发现空闲显卡，立刻通知你，或者直接帮你把实例开机。没有第三方中转。
 
 - **原生 SwiftUI**：不是 Electron，不套壳，启动快、占用低。
 - **Liquid Glass 界面**：深色极光背景、玻璃卡片与柔和光效，支持全局字号缩放。
@@ -86,6 +87,8 @@ AutoDL 的闲置 GPU 就像食堂最后一份糖醋排骨：犹豫几秒，就�
 - Apple Silicon（arm64）
 - Xcode Command Line Tools（提供 `swiftc`、`codesign` 等命令）
 
+Windows 版本要求 Windows 10 19041 或更高版本、64 位 .NET 6 Desktop Runtime（自包含发布包不需要另装 .NET）和 WebView2 Runtime（用于内嵌登录；没有 Runtime 时仍可使用手动 Token 登录）。
+
 > 当前构建脚本只产出 arm64 应用，不提供 Intel 版本。
 
 ## 构建与运行
@@ -117,6 +120,16 @@ open "/Applications/胡闹AutoDL.app"
 ```
 
 构建脚本会把所有 Swift 源文件编译为单一可执行文件，复制图标与 `Info.plist`，在临时目录完成签名后再输出到 `dist/`。首次启动时，如果 macOS 提示无法验证开发者，可在 Finder 中右键应用并选择「打开」。
+
+### Windows 版本
+
+```powershell
+cd Windows
+.\scripts\build-windows.ps1
+& "..\dist\windows\HuNaoAutoDL.Windows.exe" --demo
+```
+
+脚本会生成 self-contained `win-x64` 单文件。Windows 版覆盖监控台、实例列表、手动/自动开关机、余额与 35 天账单、系统托盘、通知、内嵌登录和 `--demo` 演示模式；Token 与偏好设置保存在 `%LOCALAPPDATA%\HuNaoAutoDL`。
 
 ## 使用
 
@@ -175,6 +188,7 @@ open "/Applications/胡闹AutoDL.app"
 ## 数据与隐私
 
 - Token 保存在 `~/Library/Application Support/HuNaoAutoDL/session.token`，文件权限 `0600`，目录权限 `0700`，并标记为不参与备份。
+- Windows 版本将 Token 与偏好设置保存在 `%LOCALAPPDATA%\HuNaoAutoDL`，使用当前 Windows 用户的默认 ACL。
 - 不使用 Keychain，因此不会反复弹出系统密码框。
 - 应用只向 `https://www.autodl.com` 发起账户请求；检查更新与下载安装包时仅访问 `https://api.github.com` 和 `https://github.com`，不经过任何第三方服务器。
 - 通知由 macOS 本地 `UserNotifications` 框架发送，不上传设备信息。
@@ -238,6 +252,9 @@ CrazyAutoDL/
 │   │   ├── MenuBarController.swift
 │   │   └── Views/            # 监控台、实例、账单、设置、快捷面板
 │   └── scripts/build-app.sh
+├── Windows/
+│   ├── HuNaoAutoDL.Windows/  # .NET 6 WPF Windows 实现
+│   └── scripts/build-windows.ps1
 ├── docs/images/              # README 截图
 └── README.md
 ```
