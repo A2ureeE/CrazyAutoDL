@@ -61,7 +61,7 @@ public partial class MainWindow : Window
         var snapshot = new BillingSnapshot(model.Bills.ToList(), model.LastUpdated ?? DateTimeOffset.Now);
         var total = snapshot.TotalSpend(billingDays);
         var daily = snapshot.DailySeries(billingDays);
-        var slices = snapshot.GpuConsumption(30);
+        var slices = snapshot.GpuConsumption(billingDays);
         var sliceTotal = slices.Sum(x => x.Amount);
         BillingSummary.Text = $"近 {billingDays} 天消费：¥{total:0.00} · 共 {snapshot.Records.Count} 条流水 · 同步于 {snapshot.FetchedAt.LocalDateTime:yyyy-MM-dd HH:mm}";
         BillingTodayText.Text = $"¥{snapshot.TodaySpend:0.00}";
