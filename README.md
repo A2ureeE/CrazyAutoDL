@@ -112,7 +112,9 @@ AutoDL 的闲置 GPU 就像食堂最后一份糖醋排骨：犹豫几秒，就�
 
 macOS 应用使用 ad-hoc 签名、没有经过 Apple 公证，首次打开时系统可能会拦截。请在 Finder 中右键应用选择「打开」，或前往「系统设置 → 隐私与安全性」点击「仍要打开」。
 
-Windows 安装包没有购买代码签名证书，SmartScreen 可能提示「Windows 已保护你的电脑」。点击「更多信息 → 仍要运行」即可完成安装。安装包内的更新元数据（`latest.yml`）由 GitHub Actions 随构建一起生成，用于后续的应用内更新。
+Windows 安装包没有购买代码签名证书，SmartScreen 可能提示「Windows 已保护你的电脑」。点击「更多信息 → 仍要运行」即可完成安装。安装包内的更新元数据（`latest.yml`）随构建一起生成，用于后续的应用内更新。
+
+Windows 安装包 SHA-256：`f7265fc41ad9bdd6912244e7e38e514103b8be4d0bbb68c5e5f3388dcfff47de`
 
 ### 从源码构建 macOS
 
@@ -300,7 +302,7 @@ CrazyAutoDL/
 
 **Windows 安装时出现 SmartScreen 提示怎么办？**
 
-Windows 版没有购买代码签名证书，SmartScreen 会显示「Windows 已保护你的电脑」。点击「更多信息 → 仍要运行」即可。安装包来自本仓库的 GitHub Actions 构建，可对照 Release 页面中的 `latest.yml` 校验版本。
+Windows 版没有购买代码签名证书，SmartScreen 会显示「Windows 已保护你的电脑」。点击「更多信息 → 仍要运行」即可。安装包由本仓库源码构建，可对照 Release 页面中的 `latest.yml` 与上方 SHA-256 校验文件。
 
 **Windows 版把 Token 存在哪里？**
 
