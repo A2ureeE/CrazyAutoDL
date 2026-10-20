@@ -20,7 +20,7 @@
   <a href="https://github.com/A2ureeE/CrazyAutoDL/releases/latest">
     <img src="https://img.shields.io/badge/下载-macOS%20v1.2.0-34c759?style=for-the-badge&logo=apple&logoColor=white" alt="下载 macOS 版">
   </a>
-  <a href="https://github.com/A2ureeE/CrazyAutoDL/releases/tag/v1.2.0">
+  <a href="https://github.com/A2ureeE/CrazyAutoDL/releases/download/v1.2.0/HuNaoAutoDL-1.2.0-win-x64.exe">
     <img src="https://img.shields.io/badge/下载-Windows%20v1.2.0-0078d4?style=for-the-badge&logo=windows&logoColor=white" alt="下载 Windows 版">
   </a>
 </p>
@@ -62,7 +62,7 @@ AutoDL 的闲置 GPU 就像食堂最后一份糖醋排骨：犹豫几秒，就�
 
 ### 设置
 
-管理账户连接、余额提醒阈值、全局字号、检查频率与通知权限。
+管理账户连接、余额提醒阈值、全局字号（仅 macOS）、检查频率与通知权限。
 
 ![设置](docs/images/settings.png)
 
@@ -107,8 +107,8 @@ AutoDL 的闲置 GPU 就像食堂最后一份糖醋排骨：犹豫几秒，就�
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| macOS | `HuNaoAutoDL-1.2.0-arm64.dmg` / `.zip` | 要求 macOS 15 及以上、Apple Silicon |
-| Windows | `HuNaoAutoDL-1.2.0-win-x64.exe` | 安装版，支持应用内自动更新 |
+| macOS | [`HuNaoAutoDL-1.2.0-arm64.dmg`](https://github.com/A2ureeE/CrazyAutoDL/releases/download/v1.2.0/HuNaoAutoDL-1.2.0-arm64.dmg) / [`.zip`](https://github.com/A2ureeE/CrazyAutoDL/releases/download/v1.2.0/HuNaoAutoDL-1.2.0-arm64.zip) | 要求 macOS 15 及以上、Apple Silicon |
+| Windows | [`HuNaoAutoDL-1.2.0-win-x64.exe`](https://github.com/A2ureeE/CrazyAutoDL/releases/download/v1.2.0/HuNaoAutoDL-1.2.0-win-x64.exe) | 安装版，支持应用内自动更新 |
 
 macOS 应用使用 ad-hoc 签名、没有经过 Apple 公证，首次打开时系统可能会拦截。请在 Finder 中右键应用选择「打开」，或前往「系统设置 → 隐私与安全性」点击「仍要打开」。
 
