@@ -1,0 +1,76 @@
+{
+  "name": "hunao-autodl",
+  "productName": "胡闹AutoDL",
+  "version": "1.2.0",
+  "description": "AutoDL 实例监控与自动开机工具（Windows）",
+  "author": "A2ureeE",
+  "license": "UNLICENSED",
+  "private": true,
+  "homepage": "https://github.com/A2ureeE/CrazyAutoDL",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/A2ureeE/CrazyAutoDL.git"
+  },
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "demo": "electron . --demo",
+    "pack": "electron-builder --dir --publish never",
+    "dist": "electron-builder --win nsis --x64 --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
+  },
+  "devDependencies": {
+    "electron": "44.9.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.hunao.autodl",
+    "productName": "胡闹AutoDL",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "build/icon.png",
+      "build/icon.ico",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "HuNaoAutoDL-${version}-win-${arch}.${ext}",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "胡闹AutoDL",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "A2ureeE",
+      "repo": "CrazyAutoDL",
+      "releaseType": "release"
+    }
+  }
+}
