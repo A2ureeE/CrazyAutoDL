@@ -11,7 +11,7 @@ const DEFAULTS = {
   lowBalanceThreshold: 20,
   selectedInstanceId: null,
   lastUpdateCheckAt: null,
-  auth: { token: null, encryption: null, savedAt: null },
+  auth: { token: null, encryption: null, savedAt: null, subName: null },
 };
 
 class Store {
@@ -25,6 +25,9 @@ class Store {
       const raw = fs.readFileSync(this.file, 'utf8');
       const parsed = JSON.parse(raw);
       const merged = { ...DEFAULTS, ...parsed, auth: { ...DEFAULTS.auth, ...(parsed.auth || {}) } };
+      merged.auth.subName = typeof merged.auth.subName === 'string' && merged.auth.subName.trim()
+        ? merged.auth.subName.trim()
+        : null;
       merged.autoStartEnabled = Boolean(merged.autoStartEnabled);
       merged.pollInterval = clampNumber(merged.pollInterval, 8, 120, 15);
       merged.lowBalanceThreshold = clampNumber(merged.lowBalanceThreshold, 1, 10000, 20);
@@ -120,6 +123,10 @@ class Store {
   }
 
   saveToken(token) {
+    return this.saveAuth(token, null);
+  }
+
+  saveAuth(token, account) {
     const trimmed = String(token || '').trim();
     if (!trimmed) return false;
 
@@ -138,14 +145,24 @@ class Store {
       token: encoded,
       encryption,
       savedAt: new Date().toISOString(),
+      subName: account && typeof account.subName === 'string' && account.subName.trim()
+        ? account.subName.trim()
+        : null,
     };
     this.save();
     return true;
   }
 
   deleteToken() {
-    this.data.auth = { token: null, encryption: null, savedAt: null };
+    this.data.auth = { token: null, encryption: null, savedAt: null, subName: null };
     this.save();
+  }
+
+  getAccount() {
+    const subName = this.data.auth && typeof this.data.auth.subName === 'string'
+      ? this.data.auth.subName.trim()
+      : '';
+    return subName ? { subName } : null;
   }
 
   get tokenSavedAt() {

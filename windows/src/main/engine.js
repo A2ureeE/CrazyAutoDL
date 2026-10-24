@@ -20,6 +20,23 @@ const MIN_POLL_INTERVAL = 8;
 const MAX_POLL_INTERVAL = 120;
 const AUTO_START_COOLDOWN_MS = 60 * 1000;
 
+function normalizeAuth(rawAuth, fallbackAccount) {
+  if (rawAuth && typeof rawAuth === 'object' && !Array.isArray(rawAuth)) {
+    const token = String(rawAuth.token || '').trim();
+    const subName = String(
+      rawAuth.account && rawAuth.account.subName
+        ? rawAuth.account.subName
+        : rawAuth.subName || ''
+    ).trim();
+    return { token, account: subName ? { subName } : null };
+  }
+  const token = String(rawAuth || '').trim();
+  const subName = fallbackAccount && typeof fallbackAccount.subName === 'string'
+    ? fallbackAccount.subName.trim()
+    : '';
+  return { token, account: subName ? { subName } : null };
+}
+
 class Engine extends EventEmitter {
   constructor({ store, demoMode, notify, onSessionCleared, appVersion }) {
     super();
@@ -45,6 +62,8 @@ class Engine extends EventEmitter {
     this.isLoggingIn = false;
     this.loginError = null;
     this.token = null;
+    this.account = null;
+    this.subAccount = false;
     this.tokenHint = '';
     this.signedInAt = null;
     this.actionInstanceId = null;
@@ -71,9 +90,11 @@ class Engine extends EventEmitter {
     const savedToken = store.getToken();
     if (savedToken) {
       this.token = savedToken;
+      this.account = store.getAccount();
+      this.subAccount = Boolean(this.account && this.account.subName);
       this.tokenHint = maskToken(savedToken);
       this.phase = 'checking';
-      this.connectWithToken(savedToken, { persist: false, bootstrap: true }).catch((error) => {
+      this.connectWithToken(savedToken, { persist: false, bootstrap: true, account: this.account }).catch((error) => {
         console.error('[engine] bootstrap failed:', error);
       });
     } else {
@@ -106,8 +127,9 @@ class Engine extends EventEmitter {
 
   // ---------------------------------------------------------------- session
 
-  async connectWithToken(rawToken, { persist, bootstrap } = {}) {
-    const candidate = String(rawToken || '').trim();
+  async connectWithToken(rawAuth, { persist, bootstrap, account } = {}) {
+    const auth = normalizeAuth(rawAuth, account);
+    const candidate = auth.token;
     if (!candidate) return { ok: false, error: '请输入 AutoDL Token' };
     if (this.isLoggingIn) return { ok: false, error: '正在连接，请稍候' };
 
@@ -115,12 +137,14 @@ class Engine extends EventEmitter {
     this.loginError = null;
     this.emitState();
 
-    const api = new AutoDLAPI(candidate);
+    const api = new AutoDLAPI(candidate, { subAccount: Boolean(auth.account && auth.account.subName) });
     try {
       const list = await api.fetchInstances();
       this.token = candidate;
+      this.account = auth.account;
+      this.subAccount = Boolean(auth.account && auth.account.subName);
       this.tokenHint = maskToken(candidate);
-      if (persist) this.store.saveToken(candidate);
+      if (persist) this.store.saveAuth(candidate, auth.account);
       this.phase = 'signedIn';
       this.signedInAt = new Date();
       this.loginError = null;
@@ -153,6 +177,8 @@ class Engine extends EventEmitter {
 
       if (bootstrap) {
         this.token = candidate;
+        this.account = auth.account;
+        this.subAccount = Boolean(auth.account && auth.account.subName);
         this.tokenHint = maskToken(candidate);
         this.phase = 'signedIn';
         this.signedInAt = new Date();
@@ -180,6 +206,8 @@ class Engine extends EventEmitter {
     }
     this.stopMonitoring();
     this.token = null;
+    this.account = null;
+    this.subAccount = false;
     this.tokenHint = '';
     this.store.deleteToken();
     this.onSessionCleared();
@@ -209,6 +237,8 @@ class Engine extends EventEmitter {
   expireSession(reason) {
     this.stopMonitoring();
     this.token = null;
+    this.account = null;
+    this.subAccount = false;
     this.tokenHint = '';
     this.store.deleteToken();
     this.onSessionCleared();
@@ -273,7 +303,7 @@ class Engine extends EventEmitter {
     this.emitState();
 
     try {
-      const list = await new AutoDLAPI(token).fetchInstances();
+      const list = await new AutoDLAPI(token, { subAccount: this.subAccount }).fetchInstances();
       if (this.token !== token || this.phase !== 'signedIn') return;
 
       this.applyInstances(list);
@@ -281,7 +311,7 @@ class Engine extends EventEmitter {
       this.consecutiveErrors = 0;
 
       try {
-        const latestBalance = await new AutoDLAPI(token).fetchBalance();
+        const latestBalance = await new AutoDLAPI(token, { subAccount: this.subAccount }).fetchBalance();
         if (this.token !== token || this.phase !== 'signedIn') return;
         this.balance = latestBalance;
         this.balanceError = null;
@@ -302,7 +332,7 @@ class Engine extends EventEmitter {
       }
 
       try {
-        const latestStock = await new AutoDLAPI(token).fetchGPUStock(selected);
+        const latestStock = await new AutoDLAPI(token, { subAccount: this.subAccount }).fetchGPUStock(selected);
         if (this.token !== token || this.phase !== 'signedIn') return;
         this.stock = latestStock;
         this.lastUpdated = new Date();
@@ -354,7 +384,7 @@ class Engine extends EventEmitter {
 
     try {
       const { start, end } = defaultBillingRange();
-      const records = await new AutoDLAPI(token).fetchBills(start, end);
+      const records = await new AutoDLAPI(token, { subAccount: this.subAccount }).fetchBills(start, end);
       if (this.token !== token || this.phase !== 'signedIn') return;
       this.billing = new BillingSnapshot(records, new Date());
       this.billingError = null;
@@ -559,7 +589,7 @@ class Engine extends EventEmitter {
     this.emitState();
 
     try {
-      await new AutoDLAPI(token).powerOn(instance.id);
+      await new AutoDLAPI(token, { subAccount: this.subAccount }).powerOn(instance.id);
       const title = '自动开机成功';
       const detail = `${instance.name} 正在启动，已抢占 ${stock.idleGPUs} 张空闲 ${instance.gpuName}`;
       this.addActivity('success', title, detail);
@@ -593,7 +623,7 @@ class Engine extends EventEmitter {
     this.emitState();
 
     try {
-      const api = new AutoDLAPI(token);
+      const api = new AutoDLAPI(token, { subAccount: this.subAccount });
       if (turnOn) await api.powerOn(instance.id);
       else await api.powerOff(instance.id);
       const title = turnOn ? '开机指令已发送' : '关机指令已发送';

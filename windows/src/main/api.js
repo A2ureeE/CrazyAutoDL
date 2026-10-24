@@ -15,6 +15,30 @@ const {
 const BASE_URL = 'https://www.autodl.com/api/v1';
 const SUCCESS_CODES = new Set(['Success', 'success', '0']);
 
+// Match AutoDL's web client routing for authenticated sub-accounts.
+const SUB_ACCOUNT_EXEMPT_PATHS = [
+  '/file_storage/dir',
+  '/file_storage/usage',
+  '/file_storage/file',
+  '/file_storage/detail',
+  '/file_storage/cache',
+  '/machine_pro/gpu_type',
+  '/machine_pro/gpu_spec_config',
+  '/machine_pro/get/gpu_spec_config',
+  '/wx/polling/query',
+];
+
+function apiPath(path, subAccount) {
+  const normalized = String(path || '');
+  if (!subAccount || !normalized.startsWith('/') || normalized.startsWith('/sub_user/')) {
+    return normalized;
+  }
+  if (SUB_ACCOUNT_EXEMPT_PATHS.some((prefix) => normalized.startsWith(prefix))) {
+    return normalized;
+  }
+  return `/sub_user${normalized}`;
+}
+
 class AutoDLError extends Error {
   constructor(kind, message, extra = {}) {
     super(message);
@@ -61,8 +85,9 @@ function userMessage(error) {
 }
 
 class AutoDLAPI {
-  constructor(token) {
+  constructor(token, { subAccount = false } = {}) {
     this.token = token;
+    this.subAccount = Boolean(subAccount);
   }
 
   async request(method, path, body) {
@@ -70,7 +95,7 @@ class AutoDLAPI {
     const timer = setTimeout(() => controller.abort(), 20000);
     let response;
     try {
-      response = await fetch(`${BASE_URL}${path}`, {
+      response = await fetch(`${BASE_URL}${apiPath(path, this.subAccount)}`, {
         method,
         headers: {
           Authorization: this.token,
@@ -252,4 +277,5 @@ module.exports = {
   AutoDLError,
   userMessage,
   defaultBillingRange,
+  apiPath,
 };
