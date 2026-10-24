@@ -438,15 +438,17 @@ function startLoginPolling() {
       stopLoginPolling();
       return;
     }
-    let token = null;
+    let auth = null;
     try {
-      token = await loginWindow.webContents.executeJavaScript(TOKEN_SCAN_SCRIPT, true);
+      auth = await loginWindow.webContents.executeJavaScript(TOKEN_SCAN_SCRIPT, true);
     } catch {
       return;
     }
-    if (!token || token === lastAttemptedToken) return;
-    lastAttemptedToken = token;
-    const result = await engine.signIn(token);
+    if (!auth || !auth.token) return;
+    const attemptKey = `${auth.token}|${auth.account && auth.account.subName ? auth.account.subName : ''}`;
+    if (attemptKey === lastAttemptedToken) return;
+    lastAttemptedToken = attemptKey;
+    const result = await engine.signIn(auth);
     if (result && result.ok && loginWindow && !loginWindow.isDestroyed()) {
       const finishedWindow = loginWindow;
       loginWindow = null;
@@ -489,14 +491,23 @@ const TOKEN_SCAN_SCRIPT = `(() => {
       return null;
     }
     const keys = ['token', 'Token', 'access_token', 'autodl_token', 'Authorization'];
+    let token = null;
     for (let i = 0; i < keys.length; i++) {
       const raw = window.localStorage.getItem(keys[i]);
       if (!raw) continue;
-      const token = String(raw).trim().replace(/^["']|["']$/g, '');
-      if (token.length >= 12 && token.indexOf(' ') < 0 && token.charAt(0) !== '{') {
-        return token;
+      const candidate = String(raw).trim().replace(/^["']|["']$/g, '');
+      if (candidate.length >= 12 && candidate.indexOf(' ') < 0 && candidate.charAt(0) !== '{') {
+        token = candidate;
+        break;
       }
     }
+    if (!token) return null;
+    let subName = '';
+    try {
+      const user = JSON.parse(window.localStorage.getItem('user') || '{}');
+      if (user && typeof user.sub_name === 'string') subName = user.sub_name.trim();
+    } catch (e) {}
+    return { token, account: subName ? { subName } : null };
   } catch (e) {}
   return null;
 })()`;
@@ -530,8 +541,8 @@ function registerIpc() {
     return result.response === 0;
   });
 
-  ipcMain.handle('auth:sign-in', async (event, token) => {
-    const result = await engine.signIn(String(token || ''));
+  ipcMain.handle('auth:sign-in', async (event, auth) => {
+    const result = await engine.signIn(auth);
     if (result.ok) {
       clearLoginSession();
       showMainWindow();
